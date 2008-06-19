@@ -1,0 +1,320 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*- 
+
+# Droopy (http://stackp.online.fr/droopy)
+# version: 20080408 (yyyymmdd)
+
+# Copyright 2008 (C) Pierre Duquesne <stackp@online.fr>
+# Licensed under the Python Software Foundation License
+# (http://www.python.org/psf/license/)
+
+import BaseHTTPServer, cgi, os, sys, getopt, mimetypes, copy, shutil
+
+USAGE='''\
+usage: %s [-m message] [-p picture] port
+example: %s -m "Hi, this is Bob. You can send me a file." -p avatar.png\
+''' % (sys.argv[0], sys.argv[0])
+
+picture=None
+htmlpicture=""
+message=""
+
+# -- HTML templates
+
+maintmpl='''<html><head><title>%(maintitle)s</title>
+<style type="text/css">
+<!--
+body {margin:0; border:0; padding:5px; background-color:white;font-size:1.1em;}
+#wrap {width:500px; margin:0; border:0; padding:0px; margin:auto;}
+#wrapform {height:100px;padding:50px 20px 0px 20px;text-align:center;margin:0;border:0;}
+#form {}
+#picture {float:left; margin:0; border: 0; padding: 20px;}
+#message {margin:0; border: 0; padding: 20px;}
+#sending {display: none;}
+#progress {display:inline; border-collapse: separate; empty-cells: show;
+           border-spacing:6px 0; padding:0;}
+#progress td {height: 15px; width: 13px; background-color:#eee; 
+              border: 1px solid #666; padding:0px;}
+#linkurl {font-size:0.7em; text-align:right; padding: 10px; float:right}
+--></style>
+<script language="JavaScript">
+symbols = ["-","\\\\","|","/"];
+index = 0;
+spinner= null;
+function swap() {
+   document.getElementById("form").style.display = "none";
+   document.getElementById("sending").style.display = "block";
+   update();
+}
+ncell = 4;
+curcell = 0;
+function update() {
+   setTimeout(update, 300);
+   e = document.getElementById("cell"+curcell);
+   e.style.backgroundColor = "#eee";
+   curcell = (curcell+1) %% ncell
+   e = document.getElementById("cell"+curcell);
+   e.style.backgroundColor = "#aaa";
+}
+function onunload() {
+   document.getElementById("form").style.display = "block";
+   document.getElementById("sending").style.display = "none";	  
+}
+</script></head><body>
+  %(linkurl)s
+  <div id="wrap">
+    <div id="wrapform">
+      <div id="form">
+	<form method="post" enctype="multipart/form-data" action="">
+	  <input name="upfile" type="file">
+	  <input value="%(submit)s" onclick="swap()" type="submit">
+	</form>
+      </div>
+      <div id="sending"> %(sending)s &nbsp;
+        <table id="progress"><tr>
+          <td id="cell0"/><td id="cell1"/><td id="cell2"/><td id="cell3"/>
+        </tr></table>
+      </div>
+    </div>
+    %(htmlpicture)s
+    <div id="message"> %(message)s </div>
+    <div style="clear: both;">
+  </div>
+</div></body></html>
+'''
+
+successtmpl='''
+<html>
+<head><title> %(successtitle)s </title><style type="text/css">
+<!--
+body {margin:0; border:0; padding:5px; background-color:white;font-size:1.1em;}
+#wrap {width:500px; margin:0; border:0; padding:0px; margin:auto;}
+#wrapform {height:100px;padding:50px 20px 0px 20px;text-align:center;margin:0;border:0;}
+#picture {float:left; margin:0; border: 0; padding: 20px;}
+#message {margin:0; border: 0; padding: 20px;}
+#linkurl {font-size:0.7em; text-align:right; padding: 10px; float:right}
+--></style>
+</head>
+<body>
+  <div id="wrap">
+    <div id="wrapform">
+      %(received)s
+      <a href="javascript:history.back()"> %(another)s </a>
+    </div>
+    %(htmlpicture)s
+    <div id="message"> %(message)s </div>
+    <div style="clear:both;"/>
+  </div>
+</body>
+</html>
+'''
+
+errortmpl='''
+<html>
+<head><title> %(errortitle)s </title><style type="text/css">
+<!--
+body {margin:0; border:0; padding:5px; background-color:white;font-size:1.1em;}
+#wrap {width:500px; margin:0; border:0; padding:0px; margin:auto;}
+#wrapform {height:100px;padding:50px 20px 0px 20px;text-align:center;margin:0;border:0;}
+#picture {float:left; margin:0; border: 0; padding: 20px;}
+#message {margin:0; border: 0; padding: 20px;}
+#linkurl {font-size:0.7em; text-align:right; padding: 10px; float:right}
+--></style>
+</head>
+<body>
+  <div id="wrap">
+    <div id="wrapform">
+      %(problem)s
+      <a href="javascript:history.back()"> %(retry)s </a>
+    </div>
+    %(htmlpicture)s
+    <div id="message"> %(message)s </div>
+    <div style="clear:both;"/>
+  </div>
+</body>
+</html>
+''' 
+
+linkurltmpl = '''<div id="linkurl">
+<a href="http://stackp.online.fr/droopy-ip.php?port=%(port)d"> %(discover)s
+</a></div>'''
+
+
+templates = {"main": maintmpl, "success": successtmpl, "error": errortmpl}
+
+# -- Translations
+
+fr = {"maintitle":       u"Envoyer un fichier",
+      "submit":          u"Envoyer",
+      "sending":         u"Envoi en cours",
+      "successtitle":    u"Fichier reçu",
+      "received":        u"Fichier reçu !",
+      "another":         u"Envoyer un autre fichier.",
+      "errortitle":      u"Problème",
+      "problem":         u"Il y a eu un problème !",
+      "retry":           u"Réessayer.",
+      "discover":        u"Découvrir l'adresse de cette page"}
+
+en = {"maintitle":       "Send a file",
+      "submit":          "Send",
+      "sending":         "Sending",
+      "successtitle":    "File received",
+      "received":        "File received !",
+      "another":         "Send another file.",
+      "errortitle":      "Problem",
+      "problem":         "There has been a problem !",
+      "retry":           "Retry.",
+      "discover":        "Discover the address of this page"}
+
+
+translations = {"fr": fr, "en": en}
+
+class HTTPUploadHandler(BaseHTTPServer.BaseHTTPRequestHandler):
+
+    upload_dir=os.curdir
+    form_field='upfile'
+
+
+    def html(self, page):
+        """
+        page can be "main", "success", or "error"
+        returns an html page (in the appropriate language) as a string
+        """
+        
+        # -- Parse accept-language header
+        if not self.headers.has_key("accept-language"):
+            a=[]
+        else:
+            a = self.headers["accept-language"]
+            a = a.split(',')
+            a = [e.split(';q=') for e in  a]
+            a = [(lambda x: len(x)==1 and (1, x[0]) or
+                                           (float(x[1]), x[0])) (e) for e in a]
+            a.sort()
+            a.reverse()
+            a = [x[1] for x in a]
+        # now a is an ordered list of preferred languages
+            
+        # -- Choose the appropriate translation dictionary (default is english)
+        lang = "en"
+        for l in a:
+            if translations.has_key(l):
+                lang = l
+                break
+        dico = copy.copy(translations[lang])
+                    
+        dico["message"] = message
+        dico["htmlpicture"] = htmlpicture
+        dico["linkurl"] = ""
+
+        # -- Add a link to discover the url
+        if self.address_string() == "localhost":
+            dico["port"] = self.server.server_port
+            dico["linkurl"] =  linkurltmpl % dico
+
+        return templates[page] % dico
+
+
+    def do_GET(self):
+        if picture != None and self.path == '/' + os.path.basename(picture):
+            # send the picture
+            self.send_response(200)                      
+            self.send_header('Content-type',mimetypes.guess_type(picture)[0]) 
+            self.end_headers()
+            self.wfile.write(open(picture).read())
+        else:
+            # send the upload form
+            self.send_response(200)
+            self.send_header('Content-type','text/html; charset=utf-8')
+            self.end_headers()
+            self.wfile.write(self.html("main").encode('utf-8'))
+
+
+    def do_POST(self):
+        # Do some browsers /really/ use multipart ? maybe Opera ?
+        try:
+            self.log_request()
+            
+            # -- Set up environment for cgi.FieldStorage
+            env = {}
+            env['REQUEST_METHOD'] = self.command
+            if self.headers.typeheader is None:
+                env['CONTENT_TYPE'] = self.headers.type
+            else:
+                env['CONTENT_TYPE'] = self.headers.typeheader
+
+            # -- Save file
+            form = cgi.FieldStorage(fp = self.rfile, environ = env);
+            fileitem = form[self.form_field]
+            fout = file(os.path.join(self.upload_dir, fileitem.filename), 'wb')
+            shutil.copyfileobj(fileitem.file, fout)
+            fout.close()
+            self.log_message("Received: %s", fileitem.filename)
+
+            # -- Reply
+            self.send_response(200)
+            self.send_header('Content-type','text/html; charset=utf-8')
+            self.end_headers()
+            self.wfile.write(self.html("success").encode('utf-8'))
+
+        except Exception, e:
+            self.log_message(str(e))
+            self.send_response(200)
+            self.send_header('Content-type','text/html; charset=utf-8')
+            self.end_headers()
+            self.wfile.write(self.html("error").encode('utf-8'))
+
+
+import SocketServer
+class ThreadedHTTPServer(SocketServer.ThreadingMixIn,
+                         BaseHTTPServer.HTTPServer):   pass
+        
+def main():
+    global picture, htmlpicture, message
+
+    # -- Parse command line arguments
+    opts, args = None, None
+    try:
+        opts, args = getopt.gnu_getopt(sys.argv[1:], "p:m:h",
+                                               ["picture=","message=", "help"])
+    except Exception, e:
+        print e
+        sys.exit(1)
+
+    for o,a in opts:
+        if o in ["-p", "--picture"] :
+            picture = a
+            htmlpicture = '  <div id="picture"><img src="/%s"/></div>' \
+                                                    % os.path.basename(picture)
+        elif o in ["-m", "--message"] :
+            import locale
+            lang, encoding = locale.getdefaultlocale()
+            if encoding != None:  message = a.decode(encoding)
+            else:                 message = a
+        elif o in ['-h', '--help']:
+            print USAGE
+            sys.exit(0)
+
+    # -- Run the webserver
+    import socket
+    socket.setdefaulttimeout(3*60)
+    port=8000
+    try:
+        if args[0:]:
+            port = int(args[0])
+    except:
+        print args[0], "is not a valid port number"
+        sys.exit(1)
+    server_address = ('', port)
+    HTTPUploadHandler.protocol_version = "HTTP/1.0"
+    httpd = ThreadedHTTPServer(server_address, HTTPUploadHandler)
+    try:
+        print "HTTP server running... Check it out at http://localhost:%d"%port
+        httpd.serve_forever()
+    except KeyboardInterrupt:
+        print '^C received, shutting down server'
+        # some threads may run until they terminate
+        
+
+if __name__ == '__main__':
+    main()
