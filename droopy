@@ -166,8 +166,31 @@ en = {"maintitle":       "Send a file",
       "retry":           "Retry.",
       "discover":        "Discover the address of this page"}
 
+# translation by Jiří 
+cs = {"maintitle":       u"Poslat soubor",
+      "submit":          u"Poslat",
+      "sending":         u"Posílám",
+      "successtitle":    u"Soubor doručen",
+      "received":        u"Soubor doručen !",
+      "another":         u"Poslat další soubor",
+      "errortitle":      u"Chyba",
+      "problem":         u"Stala se chyba !",
+      "retry":           u"Zkusit znova.",
+      "discover":        u"Zjistit adresu stránky"}
 
-translations = {"fr": fr, "en": en}
+# translation by Michael
+de = {"maintitle":       "Datei senden",
+      "submit":          "Senden",
+      "sending":         "Sendet",
+      "successtitle":    "Datei empfangen",
+      "received":        "Datei empfangen!",
+      "another":         "Weitere Datei senden",
+      "errortitle":      "Fehler",
+      "problem":         "Ein Fehler ist aufgetreten!",
+      "retry":           "Wiederholen",
+      "discover":        "Internet-Adresse dieser Seite feststellen"}
+
+translations = {"fr": fr, "en": en, "cs": cs, "de": de}
 
 class HTTPUploadHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
