@@ -9,7 +9,8 @@
 # (http://www.python.org/psf/license/)
 
 # Changelog
-#   20080620 * czech and german translations
+#   20080620 * czech translation by Jiří
+#            * german translations by Michael
 #   20080408 * first release
 
 import BaseHTTPServer, cgi, os, sys, getopt, mimetypes, copy, shutil
@@ -170,7 +171,6 @@ en = {"maintitle":       "Send a file",
       "retry":           "Retry.",
       "discover":        "Discover the address of this page"}
 
-# translation by Jiří 
 cs = {"maintitle":       u"Poslat soubor",
       "submit":          u"Poslat",
       "sending":         u"Posílám",
@@ -182,7 +182,6 @@ cs = {"maintitle":       u"Poslat soubor",
       "retry":           u"Zkusit znova.",
       "discover":        u"Zjistit adresu stránky"}
 
-# translation by Michael
 de = {"maintitle":       "Datei senden",
       "submit":          "Senden",
       "sending":         "Sendet",
