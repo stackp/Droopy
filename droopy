@@ -8,6 +8,10 @@
 # Licensed under the Python Software Foundation License
 # (http://www.python.org/psf/license/)
 
+# Changelog
+#   20080620 * czech and german translations
+#   20080408 * first release
+
 import BaseHTTPServer, cgi, os, sys, getopt, mimetypes, copy, shutil
 
 USAGE='''\
