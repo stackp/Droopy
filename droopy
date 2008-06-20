@@ -10,7 +10,7 @@
 
 # Changelog
 #   20080620 * czech translation by Jiří
-#            * german translations by Michael
+#            * german translation by Michael
 #   20080408 * first release
 
 import BaseHTTPServer, cgi, os, sys, getopt, mimetypes, copy, shutil
