@@ -9,6 +9,7 @@
 # (http://www.python.org/psf/license/)
 
 # Changelog
+#   20080624 * option -d or --directory to specify the upload directory
 #   20080622 * file numbering to avoid overwriting
 #   20080620 * czech translation by Jiří
 #            * german translation by Michael
@@ -309,8 +310,9 @@ def main():
     # -- Parse command line arguments
     opts, args = None, None
     try:
-        opts, args = getopt.gnu_getopt(sys.argv[1:], "p:m:h",
-                                               ["picture=","message=", "help"])
+        opts, args = getopt.gnu_getopt(sys.argv[1:], "p:m:d:h",
+                                               ["picture=","message=",
+                                                "--directory=", "help"])
     except Exception, e:
         print e
         sys.exit(1)
@@ -325,6 +327,8 @@ def main():
             lang, encoding = locale.getdefaultlocale()
             if encoding != None:  message = a.decode(encoding)
             else:                 message = a
+        elif o in ['-d', '--directory']:
+            os.chdir(a)
         elif o in ['-h', '--help']:
             print USAGE
             sys.exit(0)
