@@ -18,7 +18,7 @@
 import BaseHTTPServer, cgi, os, sys, getopt, mimetypes, copy, shutil
 
 USAGE='''\
-usage: %s [-m message] [-p picture] port
+usage: %s [-m message] [-p picture] [-d directory] port
 example: %s -m "Hi, this is Bob. You can send me a file." -p avatar.png\
 ''' % (sys.argv[0], sys.argv[0])
 
