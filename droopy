@@ -2,8 +2,6 @@
 # -*- coding: utf-8 -*- 
 
 # Droopy (http://stackp.online.fr/droopy)
-# version: 20080622 (yyyymmdd)
-
 # Copyright 2008 (C) Pierre Duquesne <stackp@online.fr>
 # Licensed under the Python Software Foundation License
 # (http://www.python.org/psf/license/)
@@ -312,7 +310,7 @@ def main():
     try:
         opts, args = getopt.gnu_getopt(sys.argv[1:], "p:m:d:h",
                                                ["picture=","message=",
-                                                "--directory=", "help"])
+                                                "directory=", "help"])
     except Exception, e:
         print e
         sys.exit(1)
