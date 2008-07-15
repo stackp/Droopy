@@ -26,8 +26,7 @@ message=""
 
 # -- HTML templates
 
-maintmpl='''<html><head><title>%(maintitle)s</title>
-<style type="text/css">
+style='''<style type="text/css">
 <!--
 body {margin:0; border:0; padding:5px; background-color:white;font-size:1.1em;}
 #wrap {width:500px; margin:0; border:0; padding:0px; margin:auto;}
@@ -41,7 +40,11 @@ body {margin:0; border:0; padding:5px; background-color:white;font-size:1.1em;}
 #progress td {height: 15px; width: 13px; background-color:#eee; 
               border: 1px solid #666; padding:0px;}
 #linkurl {font-size:0.7em; text-align:right; padding: 10px; float:right}
---></style>
+--></style>'''
+
+
+maintmpl='''<html><head><title>%(maintitle)s</title>
+'''+style+'''
 <script language="JavaScript">
 symbols = ["-","\\\\","|","/"];
 index = 0;
@@ -90,15 +93,8 @@ function onunload() {
 
 successtmpl='''
 <html>
-<head><title> %(successtitle)s </title><style type="text/css">
-<!--
-body {margin:0; border:0; padding:5px; background-color:white;font-size:1.1em;}
-#wrap {width:500px; margin:0; border:0; padding:0px; margin:auto;}
-#wrapform {height:100px;padding:50px 20px 0px 20px;text-align:center;margin:0;border:0;}
-#picture {float:left; margin:0; border: 0; padding: 20px;}
-#message {margin:0; border: 0; padding: 20px;}
-#linkurl {font-size:0.7em; text-align:right; padding: 10px; float:right}
---></style>
+<head><title> %(successtitle)s </title>
+'''+style+'''
 </head>
 <body>
   <div id="wrap">
@@ -116,15 +112,8 @@ body {margin:0; border:0; padding:5px; background-color:white;font-size:1.1em;}
 
 errortmpl='''
 <html>
-<head><title> %(errortitle)s </title><style type="text/css">
-<!--
-body {margin:0; border:0; padding:5px; background-color:white;font-size:1.1em;}
-#wrap {width:500px; margin:0; border:0; padding:0px; margin:auto;}
-#wrapform {height:100px;padding:50px 20px 0px 20px;text-align:center;margin:0;border:0;}
-#picture {float:left; margin:0; border: 0; padding: 20px;}
-#message {margin:0; border: 0; padding: 20px;}
-#linkurl {font-size:0.7em; text-align:right; padding: 10px; float:right}
---></style>
+<head><title> %(errortitle)s </title>
+'''+style+'''
 </head>
 <body>
   <div id="wrap">
