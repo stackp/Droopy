@@ -46,9 +46,6 @@ body {margin:0; border:0; padding:5px; background-color:white;font-size:1.1em;}
 maintmpl='''<html><head><title>%(maintitle)s</title>
 '''+style+'''
 <script language="JavaScript">
-symbols = ["-","\\\\","|","/"];
-index = 0;
-spinner= null;
 function swap() {
    document.getElementById("form").style.display = "none";
    document.getElementById("sending").style.display = "block";
