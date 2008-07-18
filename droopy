@@ -13,20 +13,27 @@
 #            * german translation by Michael
 #   20080408 * first release
 
-import BaseHTTPServer, cgi, os, sys, getopt, mimetypes, copy, shutil
+import BaseHTTPServer
+import cgi
+import os
+import sys
+import getopt
+import mimetypes
+import copy
+import shutil
 
 USAGE='''\
 usage: %s [-m message] [-p picture] [-d directory] port
 example: %s -m "Hi, this is Bob. You can send me a file." -p avatar.png\
 ''' % (sys.argv[0], sys.argv[0])
 
-picture=None
-htmlpicture=""
-message=""
+picture = None
+htmlpicture = ""
+message = ""
 
 # -- HTML templates
 
-style='''<style type="text/css">
+style = '''<style type="text/css">
 <!--
 body {margin:0; border:0; padding:5px; background-color:white;font-size:1.1em;}
 #wrap {width:500px; margin:0; border:0; padding:0px; margin:auto;}
@@ -43,7 +50,7 @@ body {margin:0; border:0; padding:5px; background-color:white;font-size:1.1em;}
 --></style>'''
 
 
-maintmpl='''<html><head><title>%(maintitle)s</title>
+maintmpl = '''<html><head><title>%(maintitle)s</title>
 '''+style+'''
 <script language="JavaScript">
 function swap() {
@@ -88,7 +95,7 @@ function onunload() {
 </div></body></html>
 '''
 
-successtmpl='''
+successtmpl = '''
 <html>
 <head><title> %(successtitle)s </title>
 '''+style+'''
@@ -107,7 +114,7 @@ successtmpl='''
 </html>
 '''
 
-errortmpl='''
+errortmpl = '''
 <html>
 <head><title> %(errortitle)s </title>
 '''+style+'''
@@ -183,9 +190,8 @@ translations = {"fr": fr, "en": en, "cs": cs, "de": de}
 
 class HTTPUploadHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
-    upload_dir=os.curdir
-    form_field='upfile'
-
+    upload_dir = os.curdir
+    form_field = 'upfile'
 
     def html(self, page):
         """
@@ -195,7 +201,7 @@ class HTTPUploadHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         
         # -- Parse accept-language header
         if not self.headers.has_key("accept-language"):
-            a=[]
+            a = []
         else:
             a = self.headers["accept-language"]
             a = a.split(',')
@@ -324,7 +330,7 @@ def main():
     try:
         if args[0:]:
             port = int(args[0])
-    except:
+    except ValueError:
         print args[0], "is not a valid port number"
         sys.exit(1)
     server_address = ('', port)
