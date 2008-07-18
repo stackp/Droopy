@@ -51,7 +51,7 @@ body {margin:0; border:0; padding:5px; background-color:white;font-size:1.1em;}
 
 
 maintmpl = '''<html><head><title>%(maintitle)s</title>
-'''+style+'''
+''' + style + '''
 <script language="JavaScript">
 function swap() {
    document.getElementById("form").style.display = "none";
@@ -98,7 +98,7 @@ function onunload() {
 successtmpl = '''
 <html>
 <head><title> %(successtitle)s </title>
-'''+style+'''
+''' + style + '''
 </head>
 <body>
   <div id="wrap">
@@ -117,7 +117,7 @@ successtmpl = '''
 errortmpl = '''
 <html>
 <head><title> %(errortitle)s </title>
-'''+style+'''
+''' + style + '''
 </head>
 <body>
   <div id="wrap">
