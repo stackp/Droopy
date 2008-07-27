@@ -276,6 +276,8 @@ class HTTPUploadHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             # -- Save file (numbered to avoid overwriting, ex: foo-3.png)
             form = cgi.FieldStorage(fp = self.rfile, environ = env);
             fileitem = form[self.form_field]
+            if fileitem.filename == "":
+                raise Exception("Empty filename")
             localfilename = os.path.join(self.upload_dir, fileitem.filename)
             root, ext = os.path.splitext(localfilename)
             i = 1
