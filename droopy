@@ -7,6 +7,7 @@
 # (http://www.python.org/psf/license/)
 
 # Changelog
+#   20080727 * spanish translation by Federico Kereki
 #   20080624 * option -d or --directory to specify the upload directory
 #   20080622 * file numbering to avoid overwriting
 #   20080620 * czech translation by Jiří
@@ -142,28 +143,6 @@ templates = {"main": maintmpl, "success": successtmpl, "error": errortmpl}
 
 # -- Translations
 
-fr = {"maintitle":       u"Envoyer un fichier",
-      "submit":          u"Envoyer",
-      "sending":         u"Envoi en cours",
-      "successtitle":    u"Fichier reçu",
-      "received":        u"Fichier reçu !",
-      "another":         u"Envoyer un autre fichier.",
-      "errortitle":      u"Problème",
-      "problem":         u"Il y a eu un problème !",
-      "retry":           u"Réessayer.",
-      "discover":        u"Découvrir l'adresse de cette page"}
-
-en = {"maintitle":       "Send a file",
-      "submit":          "Send",
-      "sending":         "Sending",
-      "successtitle":    "File received",
-      "received":        "File received !",
-      "another":         "Send another file.",
-      "errortitle":      "Problem",
-      "problem":         "There has been a problem !",
-      "retry":           "Retry.",
-      "discover":        "Discover the address of this page"}
-
 cs = {"maintitle":       u"Poslat soubor",
       "submit":          u"Poslat",
       "sending":         u"Posílám",
@@ -186,7 +165,40 @@ de = {"maintitle":       "Datei senden",
       "retry":           "Wiederholen",
       "discover":        "Internet-Adresse dieser Seite feststellen"}
 
-translations = {"fr": fr, "en": en, "cs": cs, "de": de}
+en = {"maintitle":       "Send a file",
+      "submit":          "Send",
+      "sending":         "Sending",
+      "successtitle":    "File received",
+      "received":        "File received !",
+      "another":         "Send another file.",
+      "errortitle":      "Problem",
+      "problem":         "There has been a problem !",
+      "retry":           "Retry.",
+      "discover":        "Discover the address of this page"}
+
+es = {"maintitle":       u"Enviar un archivo",
+      "submit":          u"Enviar",
+      "sending":         u"Enviando",
+      "successtitle":    u"Archivo recibido",
+      "received":        u"¡Archivo recibido!",
+      "another":         u"Enviar otro archivo.",
+      "errortitle":      u"Error",
+      "problem":         u"¡Hubo un problema!",
+      "retry":           u"Reintentar",
+      "discover":        u"Descubrir la dirección de esta página"}
+
+fr = {"maintitle":       u"Envoyer un fichier",
+      "submit":          u"Envoyer",
+      "sending":         u"Envoi en cours",
+      "successtitle":    u"Fichier reçu",
+      "received":        u"Fichier reçu !",
+      "another":         u"Envoyer un autre fichier.",
+      "errortitle":      u"Problème",
+      "problem":         u"Il y a eu un problème !",
+      "retry":           u"Réessayer.",
+      "discover":        u"Découvrir l'adresse de cette page"}
+
+translations = {"cs": cs, "de": de, "en": en, "es": es, "fr": fr}
 
 class HTTPUploadHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
