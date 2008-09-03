@@ -329,10 +329,14 @@ def main():
         elif o in ["-m", "--message"] :
             import locale
             lang, encoding = locale.getdefaultlocale()
-            if encoding != None:  message = a.decode(encoding)
-            else:                 message = a
+            if encoding != None:
+                message = a.decode(encoding)
+            else:
+                message = a
+                
         elif o in ['-d', '--directory']:
             os.chdir(a)
+            
         elif o in ['-h', '--help']:
             print USAGE
             sys.exit(0)
