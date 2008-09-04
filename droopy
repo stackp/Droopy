@@ -7,6 +7,11 @@
 # (http://www.python.org/psf/license/)
 
 # Changelog
+#   20080904 * arabic translation by Djalel Chefrour
+#            * italian translation by fabius and d1s4st3r 
+#            * dutch translation by Tonio Voerman
+#            * portuguese translation by Pedro Palma
+#            * turkish translation by Heartsmagic
 #   20080727 * spanish translation by Federico Kereki
 #   20080624 * option -d or --directory to specify the upload directory
 #   20080622 * file numbering to avoid overwriting
@@ -143,6 +148,17 @@ templates = {"main": maintmpl, "success": successtmpl, "error": errortmpl}
 
 # -- Translations
 
+ar = {"maintitle":       u"إرسال ملف",
+      "submit":          u"إرسال",
+      "sending":         u"الملف قيد الإرسال",
+      "successtitle":    u"تم استقبال الملف",
+      "received":        u"تم استقبال الملف !",
+      "another":         u"إرسال ملف آخر",
+      "errortitle":      u"مشكلة",
+      "problem":         u"حدثت مشكلة !",
+      "retry":           u"إعادة المحاولة",
+      "discover":        u"اكتشاف عنوان هذه الصفحة"}
+
 cs = {"maintitle":       u"Poslat soubor",
       "submit":          u"Poslat",
       "sending":         u"Posílám",
@@ -198,7 +214,53 @@ fr = {"maintitle":       u"Envoyer un fichier",
       "retry":           u"Réessayer.",
       "discover":        u"Découvrir l'adresse de cette page"}
 
-translations = {"cs": cs, "de": de, "en": en, "es": es, "fr": fr}
+it = {"maintitle":       "Invia un file",
+      "submit":          "Invia",
+      "sending":         "Invio in corso",
+      "successtitle":    "File ricevuto",
+      "received":        "File ricevuto!",
+      "another":         "Invia un altro file.",
+      "errortitle":      "Errore",
+      "problem":         "Si è verificato un errore!",
+      "retry":           "Riprova.",
+      "discover":        "Scopri l’indirizzo di questa pagina"}
+
+nl = {"maintitle":       "Verstuur een bestand",
+      "submit":          "Verstuur",
+      "sending":         "Bezig met versturen",
+      "successtitle":    "Bestand ontvangen",
+      "received":        "Bestand ontvangen!",
+      "another":         "Verstuur nog een bestand.",
+      "errortitle":      "Fout",
+      "problem":         "Er is een fout opgetreden!",
+      "retry":           "Nog eens.",
+      "discover":        "Vind het adres van deze pagina"}
+
+pt = {"maintitle":       u"Enviar um ficheiro",
+      "submit":          u"Enviar",
+      "sending":         u"A enviar",
+      "successtitle":    u"Ficheiro recebido",
+      "received":        u"Ficheiro recebido !",
+      "another":         u"Enviar outro ficheiro.",
+      "errortitle":      u"Erro",
+      "problem":         u"Ocorreu um erro !",
+      "retry":           u"Tentar novamente.",
+      "discover":        u"Descobrir o endereço desta página"}
+
+tr = {"maintitle":       u"Dosya gönder",
+      "submit":          u"Gönder",
+      "sending":         u"Gönderiliyor...",
+      "successtitle":    u"Gönderildi",
+      "received":        u"Gönderildi",
+      "another":         u"Başka bir dosya gönder.",
+      "errortitle":      u"Problem.",
+      "problem":         u"Bir problem oldu !",
+      "retry":           u"Yeniden dene.",
+      "discover":        u"Bu sayfanın adresini bul"}
+
+translations = {"ar": ar, "cs": cs, "de": de, "en": en, "es": es, "fr": fr,
+                "it": it, "nl": nl, "tr": tr, "pt": pt}
+
 
 class HTTPUploadHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
