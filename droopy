@@ -311,7 +311,7 @@ class HTTPUploadHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         if picture != None and self.path == '/' + os.path.basename(picture):
             # send the picture
             self.send_response(200)                      
-            self.send_header('Content-type',mimetypes.guess_type(picture)[0]) 
+            self.send_header('Content-type', mimetypes.guess_type(picture)[0]) 
             self.end_headers()
             self.wfile.write(open(picture).read())
         else:
