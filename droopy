@@ -214,16 +214,16 @@ fr = {"maintitle":       u"Envoyer un fichier",
       "retry":           u"Réessayer.",
       "discover":        u"Découvrir l'adresse de cette page"}
 
-it = {"maintitle":       "Invia un file",
-      "submit":          "Invia",
-      "sending":         "Invio in corso",
-      "successtitle":    "File ricevuto",
-      "received":        "File ricevuto!",
-      "another":         "Invia un altro file.",
-      "errortitle":      "Errore",
-      "problem":         "Si è verificato un errore!",
-      "retry":           "Riprova.",
-      "discover":        "Scopri l’indirizzo di questa pagina"}
+it = {"maintitle":       u"Invia un file",
+      "submit":          u"Invia",
+      "sending":         u"Invio in corso",
+      "successtitle":    u"File ricevuto",
+      "received":        u"File ricevuto!",
+      "another":         u"Invia un altro file.",
+      "errortitle":      u"Errore",
+      "problem":         u"Si è verificato un errore!",
+      "retry":           u"Riprova.",
+      "discover":        u"Scopri l’indirizzo di questa pagina"}
 
 nl = {"maintitle":       "Verstuur een bestand",
       "submit":          "Verstuur",
