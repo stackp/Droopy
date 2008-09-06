@@ -271,8 +271,9 @@ class DroopyFieldStorage(cgi.FieldStorage):
 
     def make_file(self, binary=None):
         fd, name = tempfile.mkstemp(dir=os.curdir)
+        self.tmpfile = os.fdopen(fd, 'w+b')
         self.tmpfilename = name
-        return open(name, 'w+b')
+        return self.tmpfile
 
 class HTTPUploadHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
@@ -359,6 +360,7 @@ class HTTPUploadHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             while (os.path.exists(localfilename)): 
                 localfilename = "%s-%d%s" % (root, i, ext)
                 i = i+1
+            fileitem.tmpfile.close()
             shutil.move(fileitem.tmpfilename, localfilename)
             self.log_message("Received: %s", fileitem.filename)
 
