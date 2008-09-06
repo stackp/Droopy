@@ -7,7 +7,7 @@
 # (http://www.python.org/psf/license/)
 
 # Changelog
-#   20080906 * fix for Internet Explorer: extract the file base name.
+#   20080906 * extract the file base name (some browsers sends the full path)
 #   20080905 * file is uploaded directly into the specified directory.
 #   20080904 * arabic translation by Djalel Chefrour
 #            * italian translation by fabius and d1s4st3r 
@@ -383,7 +383,8 @@ class HTTPUploadHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             self.wfile.write(self.html("error").encode('utf-8'))
 
     def basename(self, path):
-        """... because Internet Explorer sends the full file path."""
+        """Extract the file base name (some browsers sends the full file path).
+        """
         for mod in posixpath, macpath, ntpath:
             name = mod.basename(path)
         return name
