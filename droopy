@@ -50,7 +50,7 @@ message = ""
 style = '''<style type="text/css">
 <!--
 body {margin:0; border:0; padding:5px; background-color:white;font-size:1.1em;}
-#wrap {width:500px; margin:0; border:0; padding:0px; margin:auto;}
+#wrap {width:500px; border:0; padding:0px; margin:auto;}
 #wrapform {height:100px;padding:50px 20px 0px 20px;text-align:center;margin:0;border:0;}
 #form {}
 #picture {float:left; margin:0; border: 0; padding: 20px;}
