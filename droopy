@@ -7,6 +7,7 @@
 # (http://www.python.org/psf/license/)
 
 # Changelog
+#   20080925 * configuration saving and loading
 #   20080906 * extract the file base name (some browsers send the full path)
 #   20080905 * file is uploaded directly into the specified directory.
 #   20080904 * arabic translation by Djalel Chefrour
@@ -22,6 +23,7 @@
 #   20080408 * first release
 
 import BaseHTTPServer
+import SocketServer
 import cgi
 import os
 import posixpath
@@ -34,16 +36,29 @@ import copy
 import shutil
 import tempfile
 import socket
-import SocketServer
+import locale
 
 USAGE='''\
-usage: %s [-m message] [-p picture] [-d directory] port
-example: %s -m "Hi, this is Bob. You can send me a file." -p avatar.png\
+Usage: %s [options] [PORT]
+
+Options:
+  -h, --help                            show this help message and exit
+  -m MESSAGE, --message=MESSAGE         set the message
+  -p PICTURE, --picture=PICTURE         set the picture
+  -d DIRECTORY, --directory=DIRECTORY   set the directory to upload files to
+  --save-config                         save options in a configuration file
+  --delete-config                       delete the configuration file and exit
+  
+Example:
+   %s -m "Hi, this is Bob. You can send me a file." -p avatar.png
 ''' % (sys.argv[0], sys.argv[0])
 
 picture = None
 htmlpicture = ""
 message = ""
+port = 8000
+directory = None
+must_save_options = False
 
 # -- HTML templates
 
@@ -281,6 +296,7 @@ class DroopyFieldStorage(cgi.FieldStorage):
         self.tmpfilename = name
         return self.tmpfile
 
+
 class HTTPUploadHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
     upload_dir = os.curdir
@@ -336,7 +352,7 @@ class HTTPUploadHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         else:
             # send the upload form
             self.send_response(200)
-            self.send_header('Content-type','text/html; charset=utf-8')
+            self.send_header('Content-type', 'text/html; charset=utf-8')
             self.end_headers()
             self.wfile.write(self.html("main").encode('utf-8'))
 
@@ -394,16 +410,72 @@ class HTTPUploadHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
 class ThreadedHTTPServer(SocketServer.ThreadingMixIn,
                          BaseHTTPServer.HTTPServer):   pass
-        
-def main():
-    global picture, htmlpicture, message
 
-    # -- Parse command line arguments
+# -- Options
+
+def configfile():
+    appname = 'droopy'
+    # os.name is 'posix', 'nt', 'os2', 'mac', 'ce' or 'riscos'
+    if os.name == 'posix':
+        filename = "%s/.%s" % (os.environ["HOME"], appname)
+
+    elif os.name == 'mac':
+        filename = ("%s/Library/Application Support/%s" %
+                    (os.environ["HOME"], appname))
+
+    elif os.name == 'nt':
+        filename = ("%s\Application Data\%s" %
+                    (os.environ["HOMEPATH"], appname))
+    else:
+        filename = None
+
+    return filename
+
+
+def save_options():
+    opt = []
+    if message:
+        opt.append('--message=%s' % message.replace('\n', '\\n'))
+    if picture:
+        opt.append('--picture=%s' % picture)
+    if directory:
+        opt.append('--directory=%s' % directory)
+    if port:
+        opt.append('%d' % port)
+    f = open(configfile(), 'w')
+    f.write('\n'.join(opt).encode('utf8'))
+    f.close()
+
+    
+def load_options():
+    try:
+        f = open(configfile())
+        cmd = [line.strip().decode('utf8').replace('\\n', '\n')
+               for line in f.readlines()]
+        parse_args(cmd)
+        f.close()
+        return True
+    except IOError, e:
+        return False
+
+def parse_args(cmd=None):
+    """Parse command-line arguments.
+
+    Parse sys.argv[1:] if no argument is passed.
+    """
+    global picture, htmlpicture, message, port, directory, must_save_options
+
+    if cmd == None:
+        lang, encoding = locale.getdefaultlocale()
+        if encoding != None:
+            cmd = [a.decode(encoding) for a in sys.argv[1:]]
+
     opts, args = None, None
     try:
-        opts, args = getopt.gnu_getopt(sys.argv[1:], "p:m:d:h",
-                                               ["picture=","message=",
-                                                "directory=", "help"])
+        opts, args = getopt.gnu_getopt(cmd, "p:m:d:h",
+                                       ["picture=","message=",
+                                        "directory=", "help",
+                                        "save-config","delete-config"])
     except Exception, e:
         print e
         sys.exit(1)
@@ -414,39 +486,63 @@ def main():
             htmlpicture = '  <div id="picture"><img src="/%s"/></div>' \
                                                     % os.path.basename(picture)
         elif o in ["-m", "--message"] :
-            import locale
-            lang, encoding = locale.getdefaultlocale()
-            if encoding != None:
-                message = a.decode(encoding)
-            else:
-                message = a
+            message = a
                 
         elif o in ['-d', '--directory']:
+            directory = a
             os.chdir(a)
             
+        elif o in ['--save-config']:
+            must_save_options = True
+
+        elif o in ['--delete-config']:
+            try:
+                filename = configfile()
+                os.remove(filename)
+                print 'Deleted ' + filename
+            except Exception, e:
+                print e
+            sys.exit(0)
+
         elif o in ['-h', '--help']:
             print USAGE
             sys.exit(0)
 
-    # -- Run the webserver
-    socket.setdefaulttimeout(3*60)
-    port=8000
+    # port number
     try:
         if args[0:]:
             port = int(args[0])
     except ValueError:
         print args[0], "is not a valid port number"
         sys.exit(1)
+
+
+def run():
+    """Run the webserver."""
+    socket.setdefaulttimeout(3*60)
     server_address = ('', port)
     HTTPUploadHandler.protocol_version = "HTTP/1.0"
     httpd = ThreadedHTTPServer(server_address, HTTPUploadHandler)
+    httpd.serve_forever()
+
+if __name__ == '__main__':
+    config_found = load_options()
+    parse_args()
+
+    if config_found:
+        print 'Configuration found in %s' % configfile()
+    else:
+        print "No configuration file found."
+        
+    if must_save_options:
+        save_options()
+        print "Options saved in %s" % configfile()
+
+    print "Files will be uploaded to %s" % (directory or
+                                            os.path.abspath(os.curdir))
     try:
         print "HTTP server running... Check it out at http://localhost:%d"%port
-        httpd.serve_forever()
+        run()
     except KeyboardInterrupt:
         print '^C received, shutting down server'
         # some threads may run until they terminate
-        
-
-if __name__ == '__main__':
-    main()
