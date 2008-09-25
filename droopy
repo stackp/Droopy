@@ -7,7 +7,7 @@
 # (http://www.python.org/psf/license/)
 
 # Changelog
-#   20080925 * configuration saving and loading
+#   20080926 * configuration saving and loading
 #   20080906 * extract the file base name (some browsers send the full path)
 #   20080905 * file is uploaded directly into the specified directory.
 #   20080904 * arabic translation by Djalel Chefrour
@@ -458,6 +458,7 @@ def load_options():
     except IOError, e:
         return False
 
+
 def parse_args(cmd=None):
     """Parse command-line arguments.
 
@@ -517,6 +518,8 @@ def parse_args(cmd=None):
         sys.exit(1)
 
 
+# -- 
+
 def run():
     """Run the webserver."""
     socket.setdefaulttimeout(3*60)
@@ -524,6 +527,7 @@ def run():
     HTTPUploadHandler.protocol_version = "HTTP/1.0"
     httpd = ThreadedHTTPServer(server_address, HTTPUploadHandler)
     httpd.serve_forever()
+
 
 if __name__ == '__main__':
     config_found = load_options()
