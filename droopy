@@ -332,7 +332,7 @@ class HTTPUploadHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             self.send_response(200)                      
             self.send_header('Content-type', mimetypes.guess_type(picture)[0]) 
             self.end_headers()
-            self.wfile.write(open(picture).read())
+            self.wfile.write(open(picture, 'rb').read())
         else:
             # send the upload form
             self.send_response(200)
