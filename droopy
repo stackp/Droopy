@@ -383,8 +383,16 @@ class HTTPUploadHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             while (os.path.exists(localfilename)): 
                 localfilename = "%s-%d%s" % (root, i, ext)
                 i = i+1
-            fileitem.tmpfile.close()
-            shutil.move(fileitem.tmpfilename, localfilename)
+            if hasattr(fileitem, 'tmpfile'):
+                # DroopyFieldStorage.make_file() has been called
+                fileitem.tmpfile.close()
+                shutil.move(fileitem.tmpfilename, localfilename)
+            else:
+                # no temporary file, self.file is a StringIO()
+                # see cgi.FieldStorage.read_lines()
+                fout = file(localfilename, 'wb')
+                shutil.copyfileobj(fileitem.file, fout)
+                fout.close()
             self.log_message("Received: %s", fileitem.filename)
 
             # -- Reply
@@ -394,7 +402,7 @@ class HTTPUploadHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             self.wfile.write(self.html("success").encode('utf-8'))
 
         except Exception, e:
-            self.log_message(str(e))
+            self.log_message(repr(e))
             self.send_response(200)
             self.send_header('Content-type','text/html; charset=utf-8')
             self.end_headers()
