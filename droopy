@@ -475,10 +475,11 @@ def parse_args(cmd=None):
     global picture, htmlpicture, message, port, directory, must_save_options
 
     if cmd == None:
+        cmd = sys.argv[1:]
         lang, encoding = locale.getdefaultlocale()
         if encoding != None:
-            cmd = [a.decode(encoding) for a in sys.argv[1:]]
-
+            cmd = [a.decode(encoding) for a in cmd]
+            
     opts, args = None, None
     try:
         opts, args = getopt.gnu_getopt(cmd, "p:m:d:h",
