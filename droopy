@@ -360,7 +360,7 @@ class HTTPUploadHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     def do_POST(self):
         # Do some browsers /really/ use multipart ? maybe Opera ?
         try:
-            self.log_request()
+            self.log_message("Started file transfer")
             
             # -- Set up environment for cgi.FieldStorage
             env = {}
