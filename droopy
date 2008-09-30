@@ -39,7 +39,7 @@ import socket
 import locale
 
 USAGE='''\
-Usage: %s [options] [PORT]
+Usage: droopy [options] [PORT]
 
 Options:
   -h, --help                            show this help message and exit
@@ -50,8 +50,8 @@ Options:
   --delete-config                       delete the configuration file and exit
   
 Example:
-   %s -m "Hi, this is Bob. You can send me a file." -p avatar.png
-''' % (sys.argv[0], sys.argv[0])
+   droopy -m "Hi, this is Bob. You can send me a file." -p avatar.png
+''' 
 
 picture = None
 htmlpicture = ""
