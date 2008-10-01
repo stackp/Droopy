@@ -7,6 +7,8 @@
 # (http://www.python.org/psf/license/)
 
 # Changelog
+#   20081001 * droopy gets pretty (css and html rework)
+#            * finnish translation by ipppe
 #   20080926 * configuration saving and loading
 #   20080906 * extract the file base name (some browsers send the full path)
 #   20080905 * file is uploaded directly into the specified directory.
@@ -233,6 +235,17 @@ es = {"maintitle":       u"Enviar un archivo",
       "retry":           u"Reintentar",
       "discover":        u"Descubrir la dirección de esta página"}
 
+fi = {"maintitle":       u"Lähetä tiedosto",
+      "submit":          u"Lähetä",
+      "sending":         u"Lähettää",
+      "successtitle":    u"Tiedosto vastaanotettu",
+      "received":        u"Tiedosto vastaanotettu!",
+      "another":         u"Lähetä toinen tiedosto.",
+      "errortitle":      u"Virhe",
+      "problem":         u"Virhe lahetettäessä tiedostoa!",
+      "retry":           u"Uudelleen.",
+      "discover":        u"Näytä tämän sivun osoite"}
+
 fr = {"maintitle":       u"Envoyer un fichier",
       "submit":          u"Envoyer",
       "sending":         u"Envoi en cours",
@@ -288,8 +301,8 @@ tr = {"maintitle":       u"Dosya gönder",
       "retry":           u"Yeniden dene.",
       "discover":        u"Bu sayfanın adresini bul"}
 
-translations = {"ar": ar, "cs": cs, "de": de, "en": en, "es": es, "fr": fr,
-                "it": it, "nl": nl, "tr": tr, "pt": pt}
+translations = {"ar": ar, "cs": cs, "de": de, "en": en, "es": es, "fi": fi,
+                "fr": fr, "it": it, "nl": nl, "tr": tr, "pt": pt}
 
 
 class DroopyFieldStorage(cgi.FieldStorage):
