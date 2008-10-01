@@ -144,7 +144,7 @@ successtmpl = '''
 <div id="wrap">
   <div id="wrapform">
     %(received)s
-    <a href="javascript:history.back()"> %(another)s </a>
+    <a href="/"> %(another)s </a>
   </div>
 ''' + userinfo + '''
 </div>
@@ -161,7 +161,7 @@ errortmpl = '''
   <div id="wrap">
     <div id="wrapform">
       %(problem)s
-      <a href="javascript:history.back()"> %(retry)s </a>
+      <a href="/"> %(retry)s </a>
     </div>
 ''' + userinfo + '''
 </div>
