@@ -65,25 +65,33 @@ must_save_options = False
 style = '''<style type="text/css">
 <!--
 body {margin: 0; border: 0; padding: 0px; background-color: #fafafa;
-      font-size: 0.9em; padding-top: 20px;}
-#wrap {width: 500px; border: 0; padding: 0px; margin: auto;
+      font-size: 0.9em; font-family: sans-serif; padding-top: 20px;}
+#wrap {width: 500px; padding: 0px; margin: auto;
        border: 1px dashed #ccc; background-color: white;}
-#wrapform {height: 100px; padding: 50px 20px 0px 20px; text-align: center;
+#wrapform {height: 75px; padding: 50px 20px 0px 20px; text-align: center;
            margin: 0; border: 0; border-bottom: 1px dashed #ccc;}
 #form {}
-#picture {float: left; margin: 0; border: 0; padding: 20px;}
-#message {margin: 0; padding: 20px; font-family: monospace; font-size: 1.3em;}
 #sending {display: none;}
-#progress {display: inline; border-collapse: separate; empty-cells: show;
-           border-spacing: 6px 0; padding: 0;}
+#progress {display: inline;  border-collapse: separate; empty-cells: show;
+           border-spacing: 6px 0; padding: 0; vertical-align: bottom;}
 #progress td {height: 15px; width: 13px; background-color: #eee; 
               border: 1px solid #666; padding: 0px;}
+#userinfo {border-collapse: collapse; padding:0px}
+#userinfo td {border-collapse: collapse; cell-spacing: 0px; vertical-align:top}
+#picture {margin: 0; padding: 20px; border: 0;}
+#message {margin: 0; padding: 20px; font-family: monospace; font-size: 1.2em;}
 #linkurl {font-size: 0.8em; text-align: center; padding: 5px; float: right;
-          background-color: orange; margin-top: 7px; width: 100%%;}
+          background-color: orange; margin-top: 13px; width: 100%%;}
 #linkurl a {color: white; font-weight: bold; text-decoration: none;}
 #linkurl a:hover {text-decoration: underline;}
 --></style>'''
 
+userinfo = '''
+  <table id="userinfo"><tr>
+    <td>%(htmlpicture)s</td>
+    <td id="message"> %(message)s </td>
+  </tr></table>
+  '''
 
 maintmpl = '''<html><head><title>%(maintitle)s</title>
 ''' + style + '''
@@ -108,25 +116,22 @@ function onunload() {
    document.getElementById("sending").style.display = "none";	  
 }
 </script></head><body>
-  %(linkurl)s
-  <div id="wrap">
-    <div id="wrapform">
-      <div id="form">
-	<form method="post" enctype="multipart/form-data" action="">
-	  <input name="upfile" type="file">
-	  <input value="%(submit)s" onclick="swap()" type="submit">
-	</form>
-      </div>
-      <div id="sending"> %(sending)s &nbsp;
-        <table id="progress"><tr>
-          <td id="cell0"/><td id="cell1"/><td id="cell2"/><td id="cell3"/>
-        </tr></table>
-      </div>
+%(linkurl)s
+<div id="wrap">
+  <div id="wrapform">
+    <div id="form">
+      <form method="post" enctype="multipart/form-data" action="">
+        <input name="upfile" type="file">
+        <input value="%(submit)s" onclick="swap()" type="submit">
+      </form>
     </div>
-    %(htmlpicture)s
-    <div id="message"> %(message)s </div>
-    <div style="clear: both;">
+    <div id="sending"> %(sending)s &nbsp;
+      <table id="progress"><tr>
+        <td id="cell0"/><td id="cell1"/><td id="cell2"/><td id="cell3"/>
+      </tr></table>
+    </div>
   </div>
+''' + userinfo + '''
 </div></body></html>
 '''
 
@@ -136,15 +141,13 @@ successtmpl = '''
 ''' + style + '''
 </head>
 <body>
-  <div id="wrap">
-    <div id="wrapform">
-      %(received)s
-      <a href="javascript:history.back()"> %(another)s </a>
-    </div>
-    %(htmlpicture)s
-    <div id="message"> %(message)s </div>
-    <div style="clear:both;"/>
+<div id="wrap">
+  <div id="wrapform">
+    %(received)s
+    <a href="javascript:history.back()"> %(another)s </a>
   </div>
+''' + userinfo + '''
+</div>
 </body>
 </html>
 '''
@@ -160,10 +163,8 @@ errortmpl = '''
       %(problem)s
       <a href="javascript:history.back()"> %(retry)s </a>
     </div>
-    %(htmlpicture)s
-    <div id="message"> %(message)s </div>
-    <div style="clear:both;"/>
-  </div>
+''' + userinfo + '''
+</div>
 </body>
 </html>
 ''' 
@@ -499,8 +500,8 @@ def parse_args(cmd=None):
     for o,a in opts:
         if o in ["-p", "--picture"] :
             picture = a
-            htmlpicture = '  <div id="picture"><img src="/%s"/></div>' \
-                                                    % os.path.basename(picture)
+            htmlpicture = '<div id="picture"><img src="/%s"/></div>' % \
+                                                      os.path.basename(picture)
         elif o in ["-m", "--message"] :
             message = a
                 
