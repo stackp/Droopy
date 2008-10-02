@@ -81,7 +81,8 @@ body {margin: 0; border: 0; padding: 0px; background-color: #fafafa;
 #userinfo {border-collapse: collapse; padding:0px}
 #userinfo td {border-collapse: collapse; cell-spacing: 0px; vertical-align:top}
 #picture {margin: 0; padding: 20px; border: 0;}
-#message {margin: 0; padding: 20px; font-family: monospace; font-size: 1.2em;}
+#message {margin: 0; padding: 20px; font-family: monospace; font-size: 1.2em;
+          width: 100%%;}
 #linkurl {font-size: 0.8em; text-align: center; padding: 5px; float: right;
           background-color: orange; margin-top: 13px; width: 100%%;}
 #linkurl a {color: white; font-weight: bold; text-decoration: none;}
