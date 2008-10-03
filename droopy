@@ -56,7 +56,6 @@ Example:
 ''' 
 
 picture = None
-htmlpicture = ""
 message = ""
 port = 8000
 directory = os.curdir
@@ -349,15 +348,21 @@ class HTTPUploadHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                 lang = l
                 break
         dico = copy.copy(translations[lang])
-                    
+
+        # -- Set message and picture
         dico["message"] = message
-        dico["htmlpicture"] = htmlpicture
-        dico["linkurl"] = ""
+        if picture != None:
+            dico["htmlpicture"] = '<div id="picture"><img src="/%s"/></div>' %\
+                                                      os.path.basename(picture)
+        else:
+            dico["htmlpicture"] = ""
 
         # -- Add a link to discover the url
         if self.address_string() == "localhost":
             dico["port"] = self.server.server_port
             dico["linkurl"] =  linkurltmpl % dico
+        else:
+            dico["linkurl"] = ""
 
         return templates[page] % dico
 
@@ -492,7 +497,7 @@ def parse_args(cmd=None):
 
     Parse sys.argv[1:] if no argument is passed.
     """
-    global picture, htmlpicture, message, port, directory, must_save_options
+    global picture, message, port, directory, must_save_options
 
     if cmd == None:
         cmd = sys.argv[1:]
@@ -513,8 +518,7 @@ def parse_args(cmd=None):
     for o,a in opts:
         if o in ["-p", "--picture"] :
             picture = a
-            htmlpicture = '<div id="picture"><img src="/%s"/></div>' % \
-                                                      os.path.basename(picture)
+
         elif o in ["-m", "--message"] :
             message = a
                 
