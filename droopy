@@ -59,7 +59,7 @@ picture = None
 htmlpicture = ""
 message = ""
 port = 8000
-directory = None
+directory = os.curdir
 must_save_options = False
 
 # -- HTML templates
@@ -312,7 +312,7 @@ class DroopyFieldStorage(cgi.FieldStorage):
     """
 
     def make_file(self, binary=None):
-        fd, name = tempfile.mkstemp(dir=os.curdir)
+        fd, name = tempfile.mkstemp(dir=directory)
         self.tmpfile = os.fdopen(fd, 'w+b')
         self.tmpfilename = name
         return self.tmpfile
@@ -320,7 +320,6 @@ class DroopyFieldStorage(cgi.FieldStorage):
 
 class HTTPUploadHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
-    upload_dir = os.curdir
     form_field = 'upfile'
 
     def html(self, page):
@@ -397,7 +396,7 @@ class HTTPUploadHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             fileitem.filename = self.basename(fileitem.filename)
             if fileitem.filename == "":
                 raise Exception("Empty filename")
-            localfilename = os.path.join(self.upload_dir, fileitem.filename)
+            localfilename = os.path.join(directory, fileitem.filename)
             root, ext = os.path.splitext(localfilename)
             i = 1
             # race condition, but hey...
@@ -521,7 +520,6 @@ def parse_args(cmd=None):
                 
         elif o in ['-d', '--directory']:
             directory = a
-            os.chdir(a)
             
         elif o in ['--save-config']:
             must_save_options = True
@@ -572,8 +570,7 @@ if __name__ == '__main__':
         save_options()
         print "Options saved in %s" % configfile()
 
-    print "Files will be uploaded to %s" % (directory or
-                                            os.path.abspath(os.curdir))
+    print "Files will be uploaded to %s" % directory
     try:
         print "HTTP server running... Check it out at http://localhost:%d"%port
         run()
