@@ -45,9 +45,9 @@ Usage: droopy [options] [PORT]
 
 Options:
   -h, --help                            show this help message and exit
-  -m MESSAGE, --message=MESSAGE         set the message
-  -p PICTURE, --picture=PICTURE         set the picture
-  -d DIRECTORY, --directory=DIRECTORY   set the directory to upload files to
+  -m MESSAGE, --message MESSAGE         set the message
+  -p PICTURE, --picture PICTURE         set the picture
+  -d DIRECTORY, --directory DIRECTORY   set the directory to upload files to
   --save-config                         save options in a configuration file
   --delete-config                       delete the configuration file and exit
   
@@ -517,7 +517,7 @@ def parse_args(cmd=None):
 
     for o,a in opts:
         if o in ["-p", "--picture"] :
-            picture = a
+            picture = os.path.expanduser(a)
 
         elif o in ["-m", "--message"] :
             message = a
