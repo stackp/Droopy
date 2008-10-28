@@ -7,6 +7,7 @@
 # (http://www.python.org/psf/license/)
 
 # Changelog
+#   20081022 * swedish translation by David Eurenius
 #   20081001 * droopy gets pretty (css and html rework)
 #            * finnish translation by ipppe
 #   20080926 * configuration saving and loading
@@ -290,6 +291,17 @@ pt = {"maintitle":       u"Enviar um ficheiro",
       "retry":           u"Tentar novamente.",
       "discover":        u"Descobrir o endereço desta página"}
 
+sv = {"maintitle":       u"Skicka en fil",
+      "submit":          u"Skicka",
+      "sending":         u"Skickar...",
+      "successtitle":    u"Fil mottagen",
+      "received":        u"Fil mottagen !",
+      "another":         u"Skicka en fil till.",
+      "errortitle":      u"Fel",
+      "problem":         u"Det har uppstått ett fel !",
+      "retry":           u"Försök igen.",
+      "discover":        u"Ta reda på adressen till denna sida"}
+
 tr = {"maintitle":       u"Dosya gönder",
       "submit":          u"Gönder",
       "sending":         u"Gönderiliyor...",
@@ -302,7 +314,7 @@ tr = {"maintitle":       u"Dosya gönder",
       "discover":        u"Bu sayfanın adresini bul"}
 
 translations = {"ar": ar, "cs": cs, "de": de, "en": en, "es": es, "fi": fi,
-                "fr": fr, "it": it, "nl": nl, "tr": tr, "pt": pt}
+                "fr": fr, "it": it, "nl": nl, "pt": pt, "sv": sv, "tr": tr}
 
 
 class DroopyFieldStorage(cgi.FieldStorage):
