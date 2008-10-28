@@ -418,7 +418,7 @@ class HTTPUploadHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                 fout = file(localfilename, 'wb')
                 shutil.copyfileobj(fileitem.file, fout)
                 fout.close()
-            self.log_message("Received: %s", fileitem.filename)
+            self.log_message("Received: %s", os.path.basename(localfilename))
 
             # -- Reply
             self.send_response(200)
