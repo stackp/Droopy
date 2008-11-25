@@ -318,7 +318,7 @@ translations = {"ar": ar, "cs": cs, "de": de, "en": en, "es": es, "fi": fi,
 
 
 class DroopyFieldStorage(cgi.FieldStorage):
-    """The file is created in the current directory and its name is
+    """The file is created in the destination directory and its name is
     stored in the tmpfilename attribute.
     """
 
