@@ -7,6 +7,8 @@
 # (http://www.python.org/psf/license/)
 
 # Changelog
+#   20081128 * slovene translation by david
+#            * romanian translation by Licaon
 #   20081022 * swedish translation by David Eurenius
 #   20081001 * droopy gets pretty (css and html rework)
 #            * finnish translation by ipppe
@@ -291,6 +293,28 @@ pt = {"maintitle":       u"Enviar um ficheiro",
       "retry":           u"Tentar novamente.",
       "discover":        u"Descobrir o endereço desta página"}
 
+ro = {"maintitle":       u"Trimite un fişier",
+      "submit":          u"Trimite",
+      "sending":         u"Se trimite",
+      "successtitle":    u"Fişier recepţionat",
+      "received":        u"Fişier recepţionat !",
+      "another":         u"Trimite un alt fişier.",
+      "errortitle":      u"Problemă",
+      "problem":         u"A intervenit o problemă !",
+      "retry":           u"Reîncearcă.",
+      "discover":        u"Descoperă adresa acestei pagini"}
+
+sl = {"maintitle":       u"Pošlji datoteko",
+      "submit":          u"Pošlji",
+      "sending":         u"Pošiljam",
+      "successtitle":    u"Datoteka prejeta",
+      "received":        u"Datoteka prejeta !",
+      "another":         u"Pošlji novo datoteko.",
+      "errortitle":      u"Napaka",
+      "problem":         u"Prišlo je do napake !",
+      "retry":           u"Poizkusi ponovno.",
+      "discover":        u"Poišči naslov na tej strani"}
+
 sv = {"maintitle":       u"Skicka en fil",
       "submit":          u"Skicka",
       "sending":         u"Skickar...",
@@ -314,7 +338,8 @@ tr = {"maintitle":       u"Dosya gönder",
       "discover":        u"Bu sayfanın adresini bul"}
 
 translations = {"ar": ar, "cs": cs, "de": de, "en": en, "es": es, "fi": fi,
-                "fr": fr, "it": it, "nl": nl, "pt": pt, "sv": sv, "tr": tr}
+                "fr": fr, "it": it, "nl": nl, "pt": pt, "ro": ro, "sl": sl,
+                "sv": sv, "tr": tr}
 
 
 class DroopyFieldStorage(cgi.FieldStorage):
