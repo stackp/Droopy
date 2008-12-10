@@ -7,6 +7,7 @@
 # (http://www.python.org/psf/license/)
 
 # Changelog
+#   20081210 * greek translation by n2j3
 #   20081128 * slovene translation by david
 #            * romanian translation by Licaon
 #   20081022 * swedish translation by David Eurenius
@@ -216,6 +217,17 @@ de = {"maintitle":       "Datei senden",
       "retry":           "Wiederholen",
       "discover":        "Internet-Adresse dieser Seite feststellen"}
 
+el = {"maintitle":       u"Στείλε ένα αρχείο",
+      "submit":          u"Αποστολή",
+      "sending":         u"Αποστέλλεται...",
+      "successtitle":    u"Επιτυχής λήψη αρχείου ",
+      "received":        u"Λήψη αρχείου ολοκληρώθηκε",
+      "another":         u"Στείλε άλλο ένα αρχείο",
+      "errortitle":      u"Σφάλμα",
+      "problem":         u"Παρουσιάστηκε σφάλμα",
+      "retry":           u"Επανάληψη",
+      "discover":        u"Βρες την διεύθυνση της σελίδας"}
+
 en = {"maintitle":       "Send a file",
       "submit":          "Send",
       "sending":         "Sending",
@@ -337,9 +349,9 @@ tr = {"maintitle":       u"Dosya gönder",
       "retry":           u"Yeniden dene.",
       "discover":        u"Bu sayfanın adresini bul"}
 
-translations = {"ar": ar, "cs": cs, "de": de, "en": en, "es": es, "fi": fi,
-                "fr": fr, "it": it, "nl": nl, "pt": pt, "ro": ro, "sl": sl,
-                "sv": sv, "tr": tr}
+translations = {"ar": ar, "cs": cs, "de": de, "el": el, "en": en, "es": es,
+                "fi": fi, "fr": fr, "it": it, "nl": nl, "pt": pt, "ro": ro,
+                "sl": sl, "sv": sv, "tr": tr}
 
 
 class DroopyFieldStorage(cgi.FieldStorage):
