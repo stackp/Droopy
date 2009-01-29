@@ -7,6 +7,7 @@
 # (http://www.python.org/psf/license/)
 
 # Changelog
+#   20090129 * serbian translation by kotnik
 #   20090125 * danish translation by jan
 #   20081210 * greek translation by n2j3
 #   20081128 * slovene translation by david
@@ -339,6 +340,17 @@ sl = {"maintitle":       u"Pošlji datoteko",
       "retry":           u"Poizkusi ponovno.",
       "discover":        u"Poišči naslov na tej strani"}
 
+sr = {"maintitle":       u"Pošalji fajl",
+      "submit":          u"Pošalji",
+      "sending":         u"Šaljem",
+      "successtitle":    u"Fajl primljen",
+      "received":        u"Fajl primljen !",
+      "another":         u"Pošalji još jedan fajl.",
+      "errortitle":      u"Problem",
+      "problem":         u"Desio se problem !",
+      "retry":           u"Pokušaj ponovo.",
+      "discover":        u"Otkrij adresu ove stranice"}
+
 sv = {"maintitle":       u"Skicka en fil",
       "submit":          u"Skicka",
       "sending":         u"Skickar...",
@@ -361,9 +373,9 @@ tr = {"maintitle":       u"Dosya gönder",
       "retry":           u"Yeniden dene.",
       "discover":        u"Bu sayfanın adresini bul"}
 
-translations = {"ar": ar, "cs": cs, "da":da, "de": de, "el": el, "en": en,
+translations = {"ar": ar, "cs": cs, "da": da, "de": de, "el": el, "en": en,
                 "es": es, "fi": fi, "fr": fr, "it": it, "nl": nl, "pt": pt,
-                "ro": ro, "sl": sl, "sv": sv, "tr": tr}
+                "ro": ro, "sl": sl, "sr": sr, "sv": sv, "tr": tr}
 
 
 class DroopyFieldStorage(cgi.FieldStorage):
