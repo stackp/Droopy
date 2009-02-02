@@ -486,24 +486,24 @@ class HTTPUploadHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             filename = self.basename(fileitem.filename).decode('utf-8')
             if filename == "":
                 raise Exception("Empty filename")
-            localfilename = os.path.join(directory, filename).encode('utf-8')
-            root, ext = os.path.splitext(localfilename)
+            localpath = os.path.join(directory, filename).encode('utf-8')
+            root, ext = os.path.splitext(localpath)
             i = 1
             # race condition, but hey...
-            while (os.path.exists(localfilename)): 
-                localfilename = "%s-%d%s" % (root, i, ext)
+            while (os.path.exists(localpath)): 
+                localpath = "%s-%d%s" % (root, i, ext)
                 i = i+1
             if hasattr(fileitem, 'tmpfile'):
                 # DroopyFieldStorage.make_file() has been called
                 fileitem.tmpfile.close()
-                shutil.move(fileitem.tmpfilename, localfilename)
+                shutil.move(fileitem.tmpfilename, localpath)
             else:
                 # no temporary file, self.file is a StringIO()
                 # see cgi.FieldStorage.read_lines()
-                fout = file(localfilename, 'wb')
+                fout = file(localpath, 'wb')
                 shutil.copyfileobj(fileitem.file, fout)
                 fout.close()
-            self.log_message("Received: %s", os.path.basename(localfilename))
+            self.log_message("Received: %s", os.path.basename(localpath))
 
             # -- Reply
             self.send_response(200)
