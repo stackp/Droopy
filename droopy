@@ -8,7 +8,8 @@
 
 # Changelog
 #   20090202 * korean translation by xissy
-#            * fix for unicode filenames, by xissy
+#            * fix for unicode filenames by xissy
+#            * relies on 127.0.0.1 instead of "localhost" hostname
 #   20090129 * serbian translation by kotnik
 #   20090125 * danish translation by jan
 #   20081210 * greek translation by n2j3
@@ -444,7 +445,7 @@ class HTTPUploadHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             dico["htmlpicture"] = ""
 
         # -- Add a link to discover the url
-        if self.address_string() == "localhost":
+        if self.client_address[0] == "127.0.0.1":
             dico["port"] = self.server.server_port
             dico["linkurl"] =  linkurltmpl % dico
         else:
