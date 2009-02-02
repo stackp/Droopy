@@ -7,6 +7,7 @@
 # (http://www.python.org/psf/license/)
 
 # Changelog
+#   20090202 * korean translation by xissy
 #   20090129 * serbian translation by kotnik
 #   20090125 * danish translation by jan
 #   20081210 * greek translation by n2j3
@@ -296,6 +297,17 @@ it = {"maintitle":       u"Invia un file",
       "retry":           u"Riprova.",
       "discover":        u"Scopri l’indirizzo di questa pagina"}
 
+ko = {"maintitle":       u"파일 보내기",
+      "submit":          u"보내기",
+      "sending":         u"보내는 중",
+      "successtitle":    u"파일이 받아졌습니다",
+      "received":        u"파일이 받아졌습니다!",
+      "another":         u"다른 파일 보내기",
+      "errortitle":      u"문제가 발생했습니다",
+      "problem":         u"문제가 발생했습니다!",
+      "retry":           u"다시 시도",
+      "discover":        u"이 페이지 주소 알아보기"}
+
 nl = {"maintitle":       "Verstuur een bestand",
       "submit":          "Verstuur",
       "sending":         "Bezig met versturen",
@@ -374,8 +386,8 @@ tr = {"maintitle":       u"Dosya gönder",
       "discover":        u"Bu sayfanın adresini bul"}
 
 translations = {"ar": ar, "cs": cs, "da": da, "de": de, "el": el, "en": en,
-                "es": es, "fi": fi, "fr": fr, "it": it, "nl": nl, "pt": pt,
-                "ro": ro, "sl": sl, "sr": sr, "sv": sv, "tr": tr}
+                "es": es, "fi": fi, "fr": fr, "it": it, "ko": ko, "nl": nl,
+                "pt": pt, "ro": ro, "sl": sl, "sr": sr, "sv": sv, "tr": tr}
 
 
 class DroopyFieldStorage(cgi.FieldStorage):
