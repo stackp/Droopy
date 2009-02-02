@@ -8,6 +8,7 @@
 
 # Changelog
 #   20090202 * korean translation by xissy
+#            * fix for unicode filenames, by xissy
 #   20090129 * serbian translation by kotnik
 #   20090125 * danish translation by jan
 #   20081210 * greek translation by n2j3
