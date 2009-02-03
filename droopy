@@ -7,6 +7,7 @@
 # (http://www.python.org/psf/license/)
 
 # Changelog
+#   20090302 * norwegian translation by Preben Olav Pedersen
 #   20090202 * korean translation by xissy
 #            * fix for unicode filenames by xissy
 #            * relies on 127.0.0.1 instead of "localhost" hostname
@@ -321,6 +322,17 @@ nl = {"maintitle":       "Verstuur een bestand",
       "retry":           "Nog eens.",
       "discover":        "Vind het adres van deze pagina"}
 
+no = {"maintitle":       u"Send en fil",
+      "submit":          u"Send",
+      "sending":         u"Sender",
+      "successtitle":    u"Fil mottatt",
+      "received":        u"Fil mottatt !",
+      "another":         u"Send en ny fil.",
+      "errortitle":      u"Feil",
+      "problem":         u"Det har skjedd en feil !",
+      "retry":           u"Send på nytt.",
+      "discover":        u"Finn addressen til denne siden"}
+
 pt = {"maintitle":       u"Enviar um ficheiro",
       "submit":          u"Enviar",
       "sending":         u"A enviar",
@@ -389,7 +401,8 @@ tr = {"maintitle":       u"Dosya gönder",
 
 translations = {"ar": ar, "cs": cs, "da": da, "de": de, "el": el, "en": en,
                 "es": es, "fi": fi, "fr": fr, "it": it, "ko": ko, "nl": nl,
-                "pt": pt, "ro": ro, "sl": sl, "sr": sr, "sv": sv, "tr": tr}
+                "no": no, "pt": pt, "ro": ro, "sl": sl, "sr": sr, "sv": sv,
+                "tr": tr}
 
 
 class DroopyFieldStorage(cgi.FieldStorage):
