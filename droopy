@@ -7,6 +7,8 @@
 # (http://www.python.org/psf/license/)
 
 # Changelog
+#   20090205 * japanese translation by Satoru Matsumoto
+#            * slovak translation by CyberBoBaK
 #   20090302 * norwegian translation by Preben Olav Pedersen
 #   20090202 * korean translation by xissy
 #            * fix for unicode filenames by xissy
@@ -300,6 +302,17 @@ it = {"maintitle":       u"Invia un file",
       "retry":           u"Riprova.",
       "discover":        u"Scopri l’indirizzo di questa pagina"}
 
+ja = {"maintitle":       u"ファイル送信",
+      "submit":          u"送信",
+      "sending":         u"送信中",
+      "successtitle":    u"受信完了",
+      "received":        u"ファイルを受信しました！",
+      "another":         u"他のファイルを送信する",
+      "errortitle":      u"問題発生",
+      "problem":         u"問題が発生しました！",
+      "retry":           u"リトライ",
+      "discover":        u"このページのアドレスを確認する"}
+
 ko = {"maintitle":       u"파일 보내기",
       "submit":          u"보내기",
       "sending":         u"보내는 중",
@@ -355,6 +368,17 @@ ro = {"maintitle":       u"Trimite un fişier",
       "retry":           u"Reîncearcă.",
       "discover":        u"Descoperă adresa acestei pagini"}
 
+sk = {"maintitle":       u"Pošli súbor",
+      "submit":          u"Pošli",
+      "sending":         u"Posielam",
+      "successtitle":    u"Súbor prijatý",
+      "received":        u"Súbor prijatý !",
+      "another":         u"Poslať ďalší súbor.",
+      "errortitle":      u"Chyba",
+      "problem":         u"Vyskytla sa chyba!",
+      "retry":           u"Skúsiť znova.",
+      "discover":        u"Zisti adresu tejto stránky"}
+
 sl = {"maintitle":       u"Pošlji datoteko",
       "submit":          u"Pošlji",
       "sending":         u"Pošiljam",
@@ -400,9 +424,9 @@ tr = {"maintitle":       u"Dosya gönder",
       "discover":        u"Bu sayfanın adresini bul"}
 
 translations = {"ar": ar, "cs": cs, "da": da, "de": de, "el": el, "en": en,
-                "es": es, "fi": fi, "fr": fr, "it": it, "ko": ko, "nl": nl,
-                "no": no, "pt": pt, "ro": ro, "sl": sl, "sr": sr, "sv": sv,
-                "tr": tr}
+                "es": es, "fi": fi, "fr": fr, "it": it, "ja": ja, "ko": ko,
+                "nl": nl, "no": no, "pt": pt, "ro": ro, "sk": sk, "sl": sl,
+                "sr": sr, "sv": sv, "tr": tr}
 
 
 class DroopyFieldStorage(cgi.FieldStorage):
