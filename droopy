@@ -561,8 +561,8 @@ class HTTPUploadHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         """Extract the file base name (some browsers send the full file path).
         """
         for mod in posixpath, macpath, ntpath:
-            name = mod.basename(path)
-        return name
+            path = mod.basename(path)
+        return path
 
 
 class ThreadedHTTPServer(SocketServer.ThreadingMixIn,
