@@ -7,6 +7,7 @@
 # (http://www.python.org/psf/license/)
 
 # Changelog
+#   20090721 * indonesian translation by Kemas
 #   20090205 * japanese translation by Satoru Matsumoto
 #            * slovak translation by CyberBoBaK
 #   20090302 * norwegian translation by Preben Olav Pedersen
@@ -291,6 +292,17 @@ fr = {"maintitle":       u"Envoyer un fichier",
       "retry":           u"Réessayer.",
       "discover":        u"Découvrir l'adresse de cette page"}
 
+id = {"maintitle":       "Kirim sebuah berkas",
+      "submit":          "Kirim",
+      "sending":         "Mengirim",
+      "successtitle":    "Berkas diterima",
+      "received":        "Berkas diterima!",
+      "another":         "Kirim berkas yang lain.",
+      "errortitle":      "Permasalahan",
+      "problem":         "Telah ditemukan sebuah kesalahan!",
+      "retry":           "Coba kembali.",
+      "discover":        "Kenali alamat IP dari halaman ini"}
+
 it = {"maintitle":       u"Invia un file",
       "submit":          u"Invia",
       "sending":         u"Invio in corso",
@@ -424,9 +436,9 @@ tr = {"maintitle":       u"Dosya gönder",
       "discover":        u"Bu sayfanın adresini bul"}
 
 translations = {"ar": ar, "cs": cs, "da": da, "de": de, "el": el, "en": en,
-                "es": es, "fi": fi, "fr": fr, "it": it, "ja": ja, "ko": ko,
-                "nl": nl, "no": no, "pt": pt, "ro": ro, "sk": sk, "sl": sl,
-                "sr": sr, "sv": sv, "tr": tr}
+                "es": es, "fi": fi, "fr": fr, "id": id, "it": it, "ja": ja, 
+                "ko": ko, "nl": nl, "no": no, "pt": pt, "ro": ro, "sk": sk, 
+                "sl": sl, "sr": sr, "sv": sv, "tr": tr}
 
 
 class DroopyFieldStorage(cgi.FieldStorage):
