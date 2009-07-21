@@ -7,35 +7,35 @@
 # (http://www.python.org/psf/license/)
 
 # Changelog
-#   20090721 * indonesian translation by Kemas
-#   20090205 * japanese translation by Satoru Matsumoto
-#            * slovak translation by CyberBoBaK
-#   20090302 * norwegian translation by Preben Olav Pedersen
-#   20090202 * korean translation by xissy
-#            * fix for unicode filenames by xissy
-#            * relies on 127.0.0.1 instead of "localhost" hostname
-#   20090129 * serbian translation by kotnik
-#   20090125 * danish translation by jan
-#   20081210 * greek translation by n2j3
-#   20081128 * slovene translation by david
-#            * romanian translation by Licaon
-#   20081022 * swedish translation by David Eurenius
-#   20081001 * droopy gets pretty (css and html rework)
-#            * finnish translation by ipppe
-#   20080926 * configuration saving and loading
-#   20080906 * extract the file base name (some browsers send the full path)
-#   20080905 * file is uploaded directly into the specified directory.
-#   20080904 * arabic translation by Djalel Chefrour
-#            * italian translation by fabius and d1s4st3r 
-#            * dutch translation by Tonio Voerman
-#            * portuguese translation by Pedro Palma
-#            * turkish translation by Heartsmagic
-#   20080727 * spanish translation by Federico Kereki
-#   20080624 * option -d or --directory to specify the upload directory
-#   20080622 * file numbering to avoid overwriting
-#   20080620 * czech translation by Jiří
-#            * german translation by Michael
-#   20080408 * first release
+#   20090721 * Indonesian translation by Kemas.
+#   20090205 * Japanese translation by Satoru Matsumoto.
+#            * Slovak translation by CyberBoBaK.
+#   20090203 * Norwegian translation by Preben Olav Pedersen.
+#   20090202 * Korean translation by xissy.
+#            * Fix for unicode filenames by xissy.
+#            * Relies on 127.0.0.1 instead of "localhost" hostname.
+#   20090129 * Serbian translation by kotnik.
+#   20090125 * Danish translation by jan.
+#   20081210 * Greek translation by n2j3.
+#   20081128 * Slovene translation by david.
+#            * Romanian translation by Licaon.
+#   20081022 * Swedish translation by David Eurenius.
+#   20081001 * Droopy gets pretty (css and html rework).
+#            * Finnish translation by ipppe.
+#   20080926 * Configuration saving and loading.
+#   20080906 * Extract the file base name (some browsers send the full path).
+#   20080905 * File is uploaded directly into the specified directory.
+#   20080904 * Arabic translation by Djalel Chefrour.
+#            * Italian translation by fabius and d1s4st3r.
+#            * Dutch translation by Tonio Voerman.
+#            * Portuguese translation by Pedro Palma.
+#            * Turkish translation by Heartsmagic.
+#   20080727 * Spanish translation by Federico Kereki.
+#   20080624 * Option -d or --directory to specify the upload directory.
+#   20080622 * File numbering to avoid overwriting.
+#   20080620 * Czech translation by Jiří.
+#            * German translation by Michael.
+#   20080408 * First release.
 
 import BaseHTTPServer
 import SocketServer
