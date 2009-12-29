@@ -7,7 +7,8 @@
 # (http://www.python.org/psf/license/)
 
 # Changelog
-#   20091229 * Galician translation by Miguel Anxo Bouzada.
+#   20091229 * IE layout fix by Carlos Eduardo Moreira dos Santos.
+#            * Galician translation by Miguel Anxo Bouzada.
 #   20090721 * Indonesian translation by Kemas.
 #   20090205 * Japanese translation by Satoru Matsumoto.
 #            * Slovak translation by CyberBoBaK.
@@ -80,7 +81,8 @@ must_save_options = False
 style = '''<style type="text/css">
 <!--
 body {margin: 0; border: 0; padding: 0px; background-color: #fafafa;
-      font-size: 0.9em; font-family: sans-serif; padding-top: 20px;}
+      text-align: center; font-size: 0.9em; font-family: sans-serif;
+      padding-top: 20px;}
 #wrap {width: 500px; padding: 0px; margin: auto;
        border: 1px dashed #ccc; background-color: white;}
 #wrapform {height: 75px; padding: 50px 20px 0px 20px; text-align: center;
