@@ -7,7 +7,9 @@
 # (http://www.python.org/psf/license/)
 
 # Changelog
-#   20091229 * IE layout fix by Carlos Eduardo Moreira dos Santos.
+#   20091229 * Brazilian Portuguese translation by
+#              Carlos Eduardo Moreira dos Santos and Toony Poony.
+#            * IE layout fix by Carlos Eduardo Moreira dos Santos.
 #            * Galician translation by Miguel Anxo Bouzada.
 #   20090721 * Indonesian translation by Kemas.
 #   20090205 * Japanese translation by Satoru Matsumoto.
@@ -383,6 +385,18 @@ pt = {"maintitle":       u"Enviar um ficheiro",
       "retry":           u"Tentar novamente.",
       "discover":        u"Descobrir o endereço desta página"}
 
+pt_br = {
+      "maintitle":       u"Enviar um arquivo",
+      "submit":          u"Enviar",
+      "sending":         u"Enviando",
+      "successtitle":    u"Arquivo recebido",
+      "received":        u"Arquivo recebido!",
+      "another":         u"Enviar outro arquivo.",
+      "errortitle":      u"Erro",
+      "problem":         u"Ocorreu um erro!",
+      "retry":           u"Tentar novamente.",
+      "discover":        u"Descobrir o endereço desta página"}
+
 ro = {"maintitle":       u"Trimite un fişier",
       "submit":          u"Trimite",
       "sending":         u"Se trimite",
@@ -451,8 +465,9 @@ tr = {"maintitle":       u"Dosya gönder",
 
 translations = {"ar": ar, "cs": cs, "da": da, "de": de, "el": el, "en": en,
                 "es": es, "fi": fi, "fr": fr, "gl": gl, "id": id, "it": it,
-                "ja": ja, "ko": ko, "nl": nl, "no": no, "pt": pt, "ro": ro,
-                "sk": sk, "sl": sl, "sr": sr, "sv": sv, "tr": tr}
+                "ja": ja, "ko": ko, "nl": nl, "no": no, "pt": pt,
+                "pt-br": pt_br, "ro": ro, "sk": sk, "sl": sl, "sr": sr,
+                "sv": sv, "tr": tr}
 
 
 class DroopyFieldStorage(cgi.FieldStorage):
