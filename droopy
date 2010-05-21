@@ -7,6 +7,7 @@
 # (http://www.python.org/psf/license/)
 
 # Changelog
+#   20100521 * Hungarian translation by Csaba Szigetvári.
 #   20091229 * Brazilian Portuguese translation by
 #              Carlos Eduardo Moreira dos Santos and Toony Poony.
 #            * IE layout fix by Carlos Eduardo Moreira dos Santos.
@@ -308,6 +309,17 @@ gl = {"maintitle":       u"Enviar un ficheiro",
       "retry":           u"Reintentar",
       "discover":        u"Descubrir o enderezo desta páxina"}
 
+hu = {"maintitle":       u"Állomány küldése",
+      "submit":          u"Küldés",
+      "sending":         u"Küldés folyamatban",
+      "successtitle":    u"Az állomány beérkezett",
+      "received":        u"Az állomány beérkezett!",
+      "another":         u"További állományok küldése",
+      "errortitle":      u"Hiba",
+      "problem":         u"Egy hiba lépett fel!",
+      "retry":           u"Megismételni",
+      "discover":        u"Az oldal Internet-címének megállapítása"}
+
 id = {"maintitle":       "Kirim sebuah berkas",
       "submit":          "Kirim",
       "sending":         "Mengirim",
@@ -464,8 +476,8 @@ tr = {"maintitle":       u"Dosya gönder",
       "discover":        u"Bu sayfanın adresini bul"}
 
 translations = {"ar": ar, "cs": cs, "da": da, "de": de, "el": el, "en": en,
-                "es": es, "fi": fi, "fr": fr, "gl": gl, "id": id, "it": it,
-                "ja": ja, "ko": ko, "nl": nl, "no": no, "pt": pt,
+                "es": es, "fi": fi, "fr": fr, "gl": gl, "hu": hu, "id": id,
+                "it": it, "ja": ja, "ko": ko, "nl": nl, "no": no, "pt": pt,
                 "pt-br": pt_br, "ro": ro, "sk": sk, "sl": sl, "sr": sr,
                 "sv": sv, "tr": tr}
 
