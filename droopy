@@ -8,6 +8,7 @@
 
 # Changelog
 #   20100521 * Hungarian translation by Csaba Szigetvári.
+#            * Russian translation by muromec.
 #   20091229 * Brazilian Portuguese translation by
 #              Carlos Eduardo Moreira dos Santos and Toony Poony.
 #            * IE layout fix by Carlos Eduardo Moreira dos Santos.
@@ -420,6 +421,17 @@ ro = {"maintitle":       u"Trimite un fişier",
       "retry":           u"Reîncearcă.",
       "discover":        u"Descoperă adresa acestei pagini"}
 
+ru = {"maintitle":       u"Отправить файл",
+      "submit":          u"Отправить",
+      "sending":         u"Отправляю",
+      "successtitle":    u"Файл получен",
+      "received":        u"Файл получен !",
+      "another":         u"Отправить другой файл.",
+      "errortitle":      u"Ошибка",
+      "problem":         u"Произошла ошибка !",
+      "retry":           u"Повторить.",
+      "discover":        u"Посмотреть адрес этой страницы"}
+
 sk = {"maintitle":       u"Pošli súbor",
       "submit":          u"Pošli",
       "sending":         u"Posielam",
@@ -478,8 +490,8 @@ tr = {"maintitle":       u"Dosya gönder",
 translations = {"ar": ar, "cs": cs, "da": da, "de": de, "el": el, "en": en,
                 "es": es, "fi": fi, "fr": fr, "gl": gl, "hu": hu, "id": id,
                 "it": it, "ja": ja, "ko": ko, "nl": nl, "no": no, "pt": pt,
-                "pt-br": pt_br, "ro": ro, "sk": sk, "sl": sl, "sr": sr,
-                "sv": sv, "tr": tr}
+                "pt-br": pt_br, "ro": ro, "ru": ru, "sk": sk, "sl": sl,
+                "sr": sr, "sv": sv, "tr": tr}
 
 
 class DroopyFieldStorage(cgi.FieldStorage):
