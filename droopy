@@ -9,6 +9,7 @@
 # Changelog
 #   20100521 * Hungarian translation by Csaba Szigetvári.
 #            * Russian translation by muromec.
+#            * Use %APPDATA% Windows environment variable -- fix by Maik.
 #   20091229 * Brazilian Portuguese translation by
 #              Carlos Eduardo Moreira dos Santos and Toony Poony.
 #            * IE layout fix by Carlos Eduardo Moreira dos Santos.
@@ -646,8 +647,8 @@ def configfile():
                     (os.environ["HOME"], appname))
 
     elif os.name == 'nt':
-        filename = ("%s\Application Data\%s" %
-                    (os.environ["HOMEPATH"], appname))
+        filename = ("%s\%s" % (os.environ["APPDATA"], appname))
+
     else:
         filename = None
 
