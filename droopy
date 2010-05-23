@@ -7,6 +7,7 @@
 # (http://www.python.org/psf/license/)
 
 # Changelog
+#   20100523 * Simplified Chinese translation by Ye Wei.
 #   20100521 * Hungarian translation by Csaba Szigetvári.
 #            * Russian translation by muromec.
 #            * Use %APPDATA% Windows environment variable -- fix by Maik.
@@ -488,11 +489,23 @@ tr = {"maintitle":       u"Dosya gönder",
       "retry":           u"Yeniden dene.",
       "discover":        u"Bu sayfanın adresini bul"}
 
+zh_cn = {
+      "maintitle":       u"发送文件",
+      "submit":          u"发送",
+      "sending":         u"发送中",
+      "successtitle":    u"文件已收到",
+      "received":        u"文件已收到！",
+      "another":         u"发送另一个文件。",
+      "errortitle":      u"问题",
+      "problem":         u"出现问题！",
+      "retry":           u"重试。",
+      "discover":        u"查看本页面的地址"}
+
 translations = {"ar": ar, "cs": cs, "da": da, "de": de, "el": el, "en": en,
                 "es": es, "fi": fi, "fr": fr, "gl": gl, "hu": hu, "id": id,
                 "it": it, "ja": ja, "ko": ko, "nl": nl, "no": no, "pt": pt,
                 "pt-br": pt_br, "ro": ro, "ru": ru, "sk": sk, "sl": sl,
-                "sr": sr, "sv": sv, "tr": tr}
+                "sr": sr, "sv": sv, "tr": tr, "zh-cn": zh_cn}
 
 
 class DroopyFieldStorage(cgi.FieldStorage):
