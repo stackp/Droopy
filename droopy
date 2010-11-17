@@ -87,27 +87,21 @@ must_save_options = False
 style = '''<style type="text/css">
 <!--
 body {margin: 0; border: 0; padding: 0px; background-color: #fafafa;
-      text-align: center; font-size: 0.9em; font-family: sans-serif;
-      padding-top: 20px;}
-#wrap {width: 500px; padding: 0px; margin: auto;
+      text-align: center; font-size: 0.9em; font-family: sans-serif;}
+#wrap {width: 500px; padding: 0px; margin: auto; margin-top: 20px;
        border: 1px dashed #ccc; background-color: white;}
 #wrapform {height: 75px; padding: 50px 20px 0px 20px; text-align: center;
            margin: 0; border: 0; border-bottom: 1px dashed #ccc;}
-#form {}
 #sending {display: none;}
 #progress {display: inline;  border-collapse: separate; empty-cells: show;
            border-spacing: 6px 0; padding: 0; vertical-align: bottom;}
 #progress td {height: 15px; width: 13px; background-color: #eee; 
               border: 1px solid #666; padding: 0px;}
-#userinfo {border-collapse: collapse; padding:0px}
+#userinfo {border-collapse: collapse; padding: 0px}
 #userinfo td {border-collapse: collapse; cell-spacing: 0px; vertical-align:top}
 #picture {margin: 0; padding: 20px; border: 0;}
-#message {margin: 0; padding: 20px; font-family: monospace; font-size: 1.2em;
-          width: 100%%;}
-#linkurl {font-size: 0.8em; text-align: center; padding: 5px; float: right;
-          background-color: orange; margin-top: 13px; width: 100%%;}
-#linkurl a {color: white; font-weight: bold; text-decoration: none;}
-#linkurl a:hover {text-decoration: underline;}
+#message {margin: 0; padding: 20px; font-family: monospace; font-size: 1.2em;}
+#linkurl {text-align: center; margin: 20px; padding-bottom: 0px;}
 --></style>'''
 
 userinfo = '''
