@@ -61,6 +61,14 @@ import tempfile
 import socket
 import locale
 
+LOGO = '''\
+ _____                               
+|     \.----.-----.-----.-----.--.--.
+|  --  |   _|  _  |  _  |  _  |  |  |
+|_____/|__| |_____|_____|   __|___  |
+                        |__|  |_____|
+'''
+
 USAGE='''\
 Usage: droopy [options] [PORT]
 
@@ -750,6 +758,8 @@ def run():
 
 
 if __name__ == '__main__':
+    print LOGO
+
     config_found = load_options()
     parse_args()
 
@@ -764,6 +774,7 @@ if __name__ == '__main__':
 
     print "Files will be uploaded to %s" % directory
     try:
+        print
         print "HTTP server running... Check it out at http://localhost:%d"%port
         run()
     except KeyboardInterrupt:
