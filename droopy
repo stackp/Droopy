@@ -2,9 +2,8 @@
 # -*- coding: utf-8 -*- 
 
 # Droopy (http://stackp.online.fr/droopy)
-# Copyright 2008 (C) Pierre Duquesne <stackp@online.fr>
-# Licensed under the Python Software Foundation License
-# (http://www.python.org/psf/license/)
+# Copyright 2008-2010 (c) Pierre Duquesne <stackp@online.fr>
+# Licensed under the New BSD License.
 
 # Changelog
 #   20100523 * Simplified Chinese translation by Ye Wei.
