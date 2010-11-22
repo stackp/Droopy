@@ -101,9 +101,9 @@ body {text-align: center;}
 #sending {display: none;}
 #wrapform {height: 80px;}
 #progress {display: inline;  border-collapse: separate; empty-cells: show;
-           border-spacing: 6px 0; padding: 0; vertical-align: bottom;}
-#progress td {height: 15px; width: 13px; background-color: #eee; 
-              border: 1px solid #666; padding: 0px;}
+           border-spacing: 10px 0; padding: 0; vertical-align: bottom;}
+#progress td {height: 25px; width: 23px; background-color: #eee;
+              border: 1px solid #aaa; padding: 0px;}
 --></style>'''
 
 userinfo = '''
