@@ -635,9 +635,26 @@ class HTTPUploadHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             path = mod.basename(path)
         return path
 
+    def handle(self):
+        try:
+            BaseHTTPServer.BaseHTTPRequestHandler.handle(self)
+        except socket.error, e:
+            self.log_message(str(e))
+            raise Abort()
+
+
+class Abort(Exception): pass
+
 
 class ThreadedHTTPServer(SocketServer.ThreadingMixIn,
-                         BaseHTTPServer.HTTPServer):   pass
+                         BaseHTTPServer.HTTPServer):
+
+    def handle_error(self, request, client_address):
+        # Override SocketServer.handle_error
+        exctype = sys.exc_info()[0]
+        if not exctype is Abort:
+            BaseHTTPServer.HTTPServer.handle_error(self,request,client_address)
+
 
 # -- Options
 
