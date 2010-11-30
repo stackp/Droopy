@@ -571,11 +571,7 @@ class HTTPUploadHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(open(picture, 'rb').read())
         else:
-            # send the upload form
-            self.send_response(200)
-            self.send_header('Content-type', 'text/html; charset=utf-8')
-            self.end_headers()
-            self.wfile.write(self.html("main").encode('utf-8'))
+            self.send_html(self.html("main"))
 
 
     def do_POST(self):
@@ -621,17 +617,17 @@ class HTTPUploadHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             self.log_message("Received: %s", os.path.basename(localpath))
 
             # -- Reply
-            self.send_response(200)
-            self.send_header('Content-type','text/html; charset=utf-8')
-            self.end_headers()
-            self.wfile.write(self.html("success").encode('utf-8'))
+            self.send_html(self.html("success"))
 
         except Exception, e:
             self.log_message(repr(e))
-            self.send_response(200)
-            self.send_header('Content-type','text/html; charset=utf-8')
-            self.end_headers()
-            self.wfile.write(self.html("error").encode('utf-8'))
+            self.send_html(self.html("error"))
+
+    def send_html(self, htmlstr):
+        self.send_response(200)
+        self.send_header('Content-type','text/html; charset=utf-8')
+        self.end_headers()
+        self.wfile.write(htmlstr.encode('utf-8'))
 
     def basename(self, path):
         """Extract the file base name (some browsers send the full file path).
