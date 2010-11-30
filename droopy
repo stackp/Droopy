@@ -515,6 +515,7 @@ class DroopyFieldStorage(cgi.FieldStorage):
 
 class HTTPUploadHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
+    protocol_version = 'HTTP/1.0'
     form_field = 'upfile'
 
     def html(self, page):
@@ -772,7 +773,6 @@ def run():
     """Run the webserver."""
     socket.setdefaulttimeout(3*60)
     server_address = ('', port)
-    HTTPUploadHandler.protocol_version = "HTTP/1.0"
     httpd = ThreadedHTTPServer(server_address, HTTPUploadHandler)
     httpd.serve_forever()
 
