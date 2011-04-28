@@ -107,8 +107,8 @@ body {text-align: center; background-color: #fff}
 #wrapform {height: 90px; padding-top:20px;}
 #progress {display: inline;  border-collapse: separate; empty-cells: show;
            border-spacing: 10px 0; padding: 0; vertical-align: bottom;}
-#progress td {height: 25px; width: 23px; background-color: #eee;
-              border: 1px solid #aaa; padding: 0px;}
+#progress td {height: 25px; width: 23px; background-color: #fff;
+              border: 1px solid #666; padding: 0px;}
 
 /* Speech bubble from http://nicolasgallagher.com/pure-css-speech-bubbles/ */
 
@@ -171,10 +171,10 @@ curcell = 0;
 function update() {
    setTimeout(update, 300);
    e = document.getElementById("cell"+curcell);
-   e.style.backgroundColor = "#eee";
+   e.style.backgroundColor = "#fff";
    curcell = (curcell+1) %% ncell
    e = document.getElementById("cell"+curcell);
-   e.style.backgroundColor = "#aaa";
+   e.style.backgroundColor = "#369";
 }
 function onunload() {
    document.getElementById("form").style.display = "block";
