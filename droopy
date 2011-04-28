@@ -98,11 +98,11 @@ publish_files = False
 style = '''<style type="text/css">
 <!--
 * {margin: 0; padding: 0;}
-body {text-align: center;}
-.box {padding-top:50px;}
+body {text-align: center; background-color: #fff}
+.box {padding-top: 20px; padding-bottom: 20px}
 #message {width: 350px; margin: auto;}
 #sending {display: none;}
-#wrapform {height: 80px;}
+#wrapform {height: 90px; padding-top:20px;}
 #progress {display: inline;  border-collapse: separate; empty-cells: show;
            border-spacing: 10px 0; padding: 0; vertical-align: bottom;}
 #progress td {height: 25px; width: 23px; background-color: #eee;
