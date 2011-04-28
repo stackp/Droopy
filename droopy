@@ -100,17 +100,59 @@ style = '''<style type="text/css">
 * {margin: 0; padding: 0;}
 body {text-align: center;}
 .box {padding-top:50px;}
-#message {width: 500px; margin: auto}
+#message {width: 350px; margin: auto;}
 #sending {display: none;}
 #wrapform {height: 80px;}
 #progress {display: inline;  border-collapse: separate; empty-cells: show;
            border-spacing: 10px 0; padding: 0; vertical-align: bottom;}
 #progress td {height: 25px; width: 23px; background-color: #eee;
               border: 1px solid #aaa; padding: 0px;}
+
+/* Speech bubble from http://nicolasgallagher.com/pure-css-speech-bubbles/ */
+
+.bubble {
+  position:relative;
+  padding:15px;
+  margin:1em 0 3em;
+  border:1px solid #999;
+  color:#000;
+  background:#fff;
+  /* css3 */
+  -webkit-border-radius:5px;
+  -moz-border-radius:5px;
+  border-radius:5px;
+}
+
+.bubble:before {
+  content:"";
+  position:absolute;
+  bottom:-14px; /* value = - border-top-width - border-bottom-width */
+  left:100px; /* controls horizontal position */
+  border-width:14px 14px 0;
+  border-style:solid;
+  border-color:#333 transparent;
+  /* reduce the damage in FF3.0 */
+  display:block;
+  width:0;
+}
+
+/* creates the smaller  triangle */
+.bubble:after {
+  content:"";
+  position:absolute;
+  bottom:-13px; /* value = - border-top-width - border-bottom-width */
+  left:101px; /* value = (:before left) + (:before border-left) - (:after border-left) */
+  border-width:13px 13px 0;
+  border-style:solid;
+  border-color:#fff transparent;
+  /* reduce the damage in FF3.0 */
+  display:block;
+  width:0;
+}
 --></style>'''
 
 userinfo = '''
-<div id="message" class="box"> %(message)s </div>
+%(message)s
 <div class="box">%(htmlpicture)s</div>
 '''
 
@@ -782,7 +824,7 @@ def parse_args(cmd=None):
             picture = os.path.expanduser(a)
 
         elif o in ["-m", "--message"] :
-            message = a
+            message = '<div id="message" class="box bubble">%s </div>' % a
                 
         elif o in ['-d', '--directory']:
             directory = a
