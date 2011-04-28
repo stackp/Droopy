@@ -60,6 +60,7 @@ import shutil
 import tempfile
 import socket
 import locale
+import urllib
 
 LOGO = '''\
  _____                               
@@ -79,6 +80,7 @@ Options:
   -d DIRECTORY, --directory DIRECTORY   set the directory to upload files to
   --save-config                         save options in a configuration file
   --delete-config                       delete the configuration file and exit
+  --dl                                  provide download links
   
 Example:
    droopy -m "Hi, this is Bob. You can send me a file." -p avatar.png
@@ -89,6 +91,7 @@ message = ""
 port = 8000
 directory = os.curdir
 must_save_options = False
+publish_files = False
 
 # -- HTML templates
 
@@ -150,6 +153,9 @@ function onunload() {
   </div>
 </div>
 ''' + userinfo + '''
+<div id="files" class="box">
+%(files)s
+</div>
 </body></html>
 '''
 
@@ -507,8 +513,10 @@ class DroopyFieldStorage(cgi.FieldStorage):
     stored in the tmpfilename attribute.
     """
 
+    TMPPREFIX = 'tmpdroopy'
+
     def make_file(self, binary=None):
-        fd, name = tempfile.mkstemp(dir=directory)
+        fd, name = tempfile.mkstemp(dir=directory, prefix=self.TMPPREFIX)
         self.tmpfile = os.fdopen(fd, 'w+b')
         self.tmpfilename = name
         return self.tmpfile
@@ -550,7 +558,7 @@ class HTTPUploadHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         # -- Set message and picture
         dico["message"] = message
         if picture != None:
-            dico["htmlpicture"] = '<img src="/%s"/>'% os.path.basename(picture)
+            dico["htmlpicture"] = '<img src="/__droopy/picture"/>'
         else:
             dico["htmlpicture"] = ""
 
@@ -561,16 +569,28 @@ class HTTPUploadHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         else:
             dico["linkurl"] = ""
 
+        dico["files"] = ""
+        for name in self.published_files():
+            dico["files"] += '<a href="/%s">%s</a><br/>' % (
+                urllib.quote(name.encode('utf-8')),
+                name)
+
         return templates[page] % dico
 
 
     def do_GET(self):
-        if picture != None and self.path == '/' + os.path.basename(picture):
+        name = self.path.lstrip('/')
+        name = urllib.unquote(name)
+        name = name.decode('utf-8')
+
+        if picture != None and self.path == '/__droopy/picture':
             # send the picture
-            self.send_response(200)                      
-            self.send_header('Content-type', mimetypes.guess_type(picture)[0]) 
-            self.end_headers()
-            self.wfile.write(open(picture, 'rb').read())
+            self.send_file(picture)
+
+        elif name in self.published_files():
+            localpath = os.path.join(directory, name)
+            self.send_file(localpath)
+
         else:
             self.send_html(self.html("main"))
 
@@ -618,11 +638,19 @@ class HTTPUploadHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             self.log_message("Received: %s", os.path.basename(localpath))
 
             # -- Reply
-            self.send_html(self.html("success"))
+            if publish_files:
+                # The file list gives a feedback for the upload
+                # success
+                self.send_response(301)
+                self.send_header("Location", "/")
+                self.end_headers()
+            else:
+                self.send_html(self.html("success"))
 
         except Exception, e:
             self.log_message(repr(e))
             self.send_html(self.html("error"))
+
 
     def send_html(self, htmlstr):
         self.send_response(200)
@@ -630,12 +658,31 @@ class HTTPUploadHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(htmlstr.encode('utf-8'))
 
+    def send_file(self, localpath):
+        f = open(localpath, 'rb')
+        self.send_response(200)
+        self.send_header('Content-type',
+                         mimetypes.guess_type(localpath)[0])
+        self.send_header('Content-length', os.fstat(f.fileno())[6])
+        self.end_headers()
+        shutil.copyfileobj(f, self.wfile)
+
     def basename(self, path):
         """Extract the file base name (some browsers send the full file path).
         """
         for mod in posixpath, macpath, ntpath:
             path = mod.basename(path)
         return path
+
+    def published_files(self):
+        if publish_files:
+            names = [name for name in os.listdir(directory)
+                     if os.path.isfile(os.path.join(directory, name))
+                     and not name.startswith(DroopyFieldStorage.TMPPREFIX)]
+            names.sort()
+        else:
+            names = []
+        return names
 
     def handle(self):
         try:
@@ -711,7 +758,7 @@ def parse_args(cmd=None):
 
     Parse sys.argv[1:] if no argument is passed.
     """
-    global picture, message, port, directory, must_save_options
+    global picture, message, port, directory, must_save_options, publish_files
 
     if cmd == None:
         cmd = sys.argv[1:]
@@ -724,7 +771,8 @@ def parse_args(cmd=None):
         opts, args = getopt.gnu_getopt(cmd, "p:m:d:h",
                                        ["picture=","message=",
                                         "directory=", "help",
-                                        "save-config","delete-config"])
+                                        "save-config","delete-config",
+                                        "dl"])
     except Exception, e:
         print e
         sys.exit(1)
@@ -750,6 +798,9 @@ def parse_args(cmd=None):
             except Exception, e:
                 print e
             sys.exit(0)
+
+        elif o in ['--dl']:
+            publish_files = True
 
         elif o in ['-h', '--help']:
             print USAGE
