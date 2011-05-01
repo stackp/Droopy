@@ -75,12 +75,12 @@ Usage: droopy [options] [PORT]
 
 Options:
   -h, --help                            show this help message and exit
+  -d DIRECTORY, --directory DIRECTORY   set the directory to upload files to
   -m MESSAGE, --message MESSAGE         set the message
   -p PICTURE, --picture PICTURE         set the picture
-  -d DIRECTORY, --directory DIRECTORY   set the directory to upload files to
+  --dl                                  provide download links
   --save-config                         save options in a configuration file
   --delete-config                       delete the configuration file and exit
-  --dl                                  provide download links
   
 Example:
    droopy -m "Hi, this is Bob. You can send me a file." -p avatar.png
