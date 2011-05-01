@@ -2,10 +2,12 @@
 # -*- coding: utf-8 -*- 
 
 # Droopy (http://stackp.online.fr/droopy)
-# Copyright 2008-2010 (c) Pierre Duquesne <stackp@online.fr>
+# Copyright 2008-2011 (c) Pierre Duquesne <stackp@online.fr>
 # Licensed under the New BSD License.
 
 # Changelog
+#   20110501 * Add the --dl option to let clients download files.
+#            * CSS speech bubble.
 #   20101130 * CSS and HTML update. Switch to the new BSD License.
 #   20100523 * Simplified Chinese translation by Ye Wei.
 #   20100521 * Hungarian translation by Csaba Szigetvári.
@@ -620,7 +622,7 @@ class HTTPUploadHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         else:
             dico["divpicture"] = ""
 
-        # -- The list of download links
+        # -- Possibly provide download links
         links = ""
         names = self.published_files()
         if names:
