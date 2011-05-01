@@ -110,9 +110,21 @@ body {text-align: center; background-color: #fff}
 #progress td {height: 25px; width: 23px; background-color: #fff;
               border: 1px solid #666; padding: 0px;}
 #userinfo {padding-bottom: 20px;}
+#files {
+  width: 600px;
+  margin: auto;
+  text-align: left;
+  overflow: auto;
+  padding: 20px;
+  margin-bottom: 20px;
+  border: 1px solid #ccc;
+}
+#files a {text-decoration: none}
+#files a:link {color: #0088ff}
+#files a:visited {color: #1d548a}
+#files a:hover {text-decoration: underline}
 
 /* Speech bubble from http://nicolasgallagher.com/pure-css-speech-bubbles/ */
-
 .bubble {
   position:relative;
   padding:15px;
@@ -139,7 +151,6 @@ body {text-align: center; background-color: #fff}
   width:0;
 }
 
-/* creates the smaller  triangle */
 .bubble:after {
   content:"";
   position:absolute;
@@ -200,9 +211,7 @@ function onunload() {
   </div>
 </div>
 ''' + userinfo + '''
-<div id="files" class="box">
 %(files)s
-</div>
 </body></html>
 '''
 
@@ -611,18 +620,23 @@ class HTTPUploadHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         else:
             dico["divpicture"] = ""
 
+        # -- The list of download links
+        links = ""
+        names = self.published_files()
+        if names:
+            for name in names:
+                links += '<a href="/%s">%s</a><br/>' % (
+                                urllib.quote(name.encode('utf-8')),
+                                name)
+            links = '<div id="files">' + links + '</div>'
+        dico["files"] = links
+
         # -- Add a link to discover the url
         if self.client_address[0] == "127.0.0.1":
             dico["port"] = self.server.server_port
             dico["linkurl"] =  linkurltmpl % dico
         else:
             dico["linkurl"] = ""
-
-        dico["files"] = ""
-        for name in self.published_files():
-            dico["files"] += '<a href="/%s">%s</a><br/>' % (
-                urllib.quote(name.encode('utf-8')),
-                name)
 
         return templates[page] % dico
 
@@ -831,7 +845,7 @@ def parse_args(cmd=None):
             picture = os.path.expanduser(a)
 
         elif o in ["-m", "--message"] :
-            message = '<div id="message" class="box bubble">%s </div>' % a
+            message = '<div id="message" class="bubble">%s </div>' % a
                 
         elif o in ['-d', '--directory']:
             directory = a
