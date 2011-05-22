@@ -799,6 +799,8 @@ def save_options():
         opt.append('--picture=%s' % picture)
     if directory:
         opt.append('--directory=%s' % directory)
+    if publish_files:
+        opt.append('--dl')
     if port:
         opt.append('%d' % port)
     f = open(configfile(), 'w')
