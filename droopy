@@ -740,8 +740,14 @@ class HTTPUploadHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         return path
 
     def published_files(self):
+        """Returns the list of files that should appear as download links.
+
+        The returned filenames are unicode strings.
+        """
         if publish_files:
-            names = [name for name in os.listdir(directory)
+            # os.listdir() returns a list of unicode strings when the
+            # directory is passed as an unicode string itself.
+            names = [name for name in os.listdir(unicode(directory))
                      if os.path.isfile(os.path.join(directory, name))
                      and not name.startswith(DroopyFieldStorage.TMPPREFIX)]
             names.sort()
