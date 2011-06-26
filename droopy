@@ -6,6 +6,8 @@
 # Licensed under the New BSD License.
 
 # Changelog
+#   20110625 * Fix bug regarding filesystem name encoding.
+#            * Save the --dl option when --save-config is passed.
 #   20110501 * Add the --dl option to let clients download files.
 #            * CSS speech bubble.
 #   20101130 * CSS and HTML update. Switch to the new BSD License.
