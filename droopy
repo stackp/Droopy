@@ -6,6 +6,7 @@
 # Licensed under the New BSD License.
 
 # Changelog
+#   20110708 * Polish translation by Jacek Politowski.
 #   20110625 * Fix bug regarding filesystem name encoding.
 #            * Save the --dl option when --save-config is passed.
 #   20110501 * Add the --dl option to let clients download files.
@@ -449,6 +450,17 @@ no = {"maintitle":       u"Send en fil",
       "retry":           u"Send på nytt.",
       "discover":        u"Finn addressen til denne siden"}
 
+pl = {"maintitle":       u"Wyślij plik",
+      "submit":          u"Wyślij",
+      "sending":         u"Wysyłanie",
+      "successtitle":    u"Plik wysłany",
+      "received":        u"Plik wysłany!",
+      "another":         u"Wyślij kolejny plik.",
+      "errortitle":      u"Problem",
+      "problem":         u"Wystąpił błąd!",
+      "retry":           u"Spróbuj ponownie.",
+      "discover":        u"Znajdź adres tej strony"}
+
 pt = {"maintitle":       u"Enviar um ficheiro",
       "submit":          u"Enviar",
       "sending":         u"A enviar",
@@ -563,9 +575,9 @@ zh_cn = {
 
 translations = {"ar": ar, "cs": cs, "da": da, "de": de, "el": el, "en": en,
                 "es": es, "fi": fi, "fr": fr, "gl": gl, "hu": hu, "id": id,
-                "it": it, "ja": ja, "ko": ko, "nl": nl, "no": no, "pt": pt,
-                "pt-br": pt_br, "ro": ro, "ru": ru, "sk": sk, "sl": sl,
-                "sr": sr, "sv": sv, "tr": tr, "zh-cn": zh_cn}
+                "it": it, "ja": ja, "ko": ko, "nl": nl, "no": no, "pl": pl,
+                "pt": pt, "pt-br": pt_br, "ro": ro, "ru": ru, "sk": sk,
+                "sl": sl, "sr": sr, "sv": sv, "tr": tr, "zh-cn": zh_cn}
 
 
 class DroopyFieldStorage(cgi.FieldStorage):
