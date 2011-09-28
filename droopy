@@ -6,6 +6,7 @@
 # Licensed under the New BSD License.
 
 # Changelog
+#   20110928 * Correctly save message with --save-config. Fix by Sven Radde.
 #   20110708 * Polish translation by Jacek Politowski.
 #   20110625 * Fix bug regarding filesystem name encoding.
 #            * Save the --dl option when --save-config is passed.
@@ -630,7 +631,12 @@ class HTTPUploadHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         dico = copy.copy(translations[lang])
 
         # -- Set message and picture
-        dico["message"] = message
+        if message:
+            dico["message"] = ('<div id="message" class="bubble">%s</div>' %
+                               message)
+        else:
+            dico["message"] = ""
+
         if picture != None:
             dico["divpicture"] = self.divpicture
         else:
@@ -869,8 +875,8 @@ def parse_args(cmd=None):
             picture = os.path.expanduser(a)
 
         elif o in ["-m", "--message"] :
-            message = '<div id="message" class="bubble">%s </div>' % a
-                
+            message = a
+
         elif o in ['-d', '--directory']:
             directory = a
             
