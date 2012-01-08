@@ -105,10 +105,11 @@ publish_files = False
 style = '''<style type="text/css">
 <!--
 * {margin: 0; padding: 0;}
-body {text-align: center; background-color: #fff}
+body {text-align: center; background-color: #fff;}
 .box {padding-top: 20px; padding-bottom: 20px}
 #linkurl {background-color: #333;}
-#linkurl a {color: #fff;}
+#linkurl a {color: #ddd; text-decoration: none;}
+#linkurl a:hover {color: #fff;}
 #message {width: 350px; margin: auto;}
 #sending {display: none;}
 #wrapform {height: 90px; padding-top:20px;}
