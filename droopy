@@ -2,10 +2,11 @@
 # -*- coding: utf-8 -*- 
 
 # Droopy (http://stackp.online.fr/droopy)
-# Copyright 2008-2011 (c) Pierre Duquesne <stackp@online.fr>
+# Copyright 2008-2012 (c) Pierre Duquesne <stackp@online.fr>
 # Licensed under the New BSD License.
 
 # Changelog
+#   20120108 * Taiwanese translation by Li-cheng Hsu.
 #   20110928 * Correctly save message with --save-config. Fix by Sven Radde.
 #   20110708 * Polish translation by Jacek Politowski.
 #   20110625 * Fix bug regarding filesystem name encoding.
@@ -574,11 +575,24 @@ zh_cn = {
       "retry":           u"重试。",
       "discover":        u"查看本页面的地址"}
 
+zh_tw = {
+      "maintitle":       u"上傳檔案",
+      "submit":          u"上傳",
+      "sending":         u"傳送中...",
+      "successtitle":    u"已收到檔案",
+      "received":        u"已收到檔案！",
+      "another":         u"上傳另一個檔案。",
+      "errortitle":      u"錯誤",
+      "problem":         u"出現錯誤！",
+      "retry":           u"重試。",
+      "discover":        u"查閱本網頁的網址"}
+
 translations = {"ar": ar, "cs": cs, "da": da, "de": de, "el": el, "en": en,
                 "es": es, "fi": fi, "fr": fr, "gl": gl, "hu": hu, "id": id,
                 "it": it, "ja": ja, "ko": ko, "nl": nl, "no": no, "pl": pl,
                 "pt": pt, "pt-br": pt_br, "ro": ro, "ru": ru, "sk": sk,
-                "sl": sl, "sr": sr, "sv": sv, "tr": tr, "zh-cn": zh_cn}
+                "sl": sl, "sr": sr, "sv": sv, "tr": tr, "zh-cn": zh_cn,
+                "zh-tw": zh_tw}
 
 
 class DroopyFieldStorage(cgi.FieldStorage):
