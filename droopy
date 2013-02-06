@@ -68,6 +68,7 @@ import tempfile
 import socket
 import locale
 import urllib
+from ctypes import CDLL, c_char_p
 
 LOGO = '''\
  _____                               
@@ -816,8 +817,10 @@ class ThreadedHTTPServer(SocketServer.ThreadingMixIn,
 def configfile():
     appname = 'droopy'
     # os.name is 'posix', 'nt', 'os2', 'mac', 'ce' or 'riscos'
-    if os.name == 'posix':
-        filename = "%s/.%s" % (os.environ["HOME"], appname)
+    if os.name == 'posix'
+	getenv = CDLL("libc.so.6").getenv
+	getenv.restype = c_char_p
+        filename = "%s/.%s" % (getenv("HOME"), appname)
 
     elif os.name == 'mac':
         filename = ("%s/Library/Application Support/%s" %
