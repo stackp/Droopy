@@ -87,6 +87,7 @@ Options:
   -m MESSAGE, --message MESSAGE         set the message
   -p PICTURE, --picture PICTURE         set the picture
   -a USER:PASS, --auth USER:PASS        set the authentication credentials
+  --ssl PEMFILE                         set up https using the certificate file
   --dl                                  provide download links
   --save-config                         save options in a configuration file
   --delete-config                       delete the configuration file and exit
@@ -102,6 +103,7 @@ directory = os.curdir
 must_save_options = False
 publish_files = False
 auth = None
+certfile = None
 
 # -- HTML templates
 
@@ -858,6 +860,8 @@ def save_options():
         opt.append('--directory=%s' % directory)
     if auth:
         opt.append('--auth=%s' % auth)
+    if certfile:
+        opt.append('--ssl=%s' % certfile)
     if publish_files:
         opt.append('--dl')
     if port:
@@ -885,7 +889,7 @@ def parse_args(cmd=None):
     Parse sys.argv[1:] if no argument is passed.
     """
     global picture, message, port, directory, must_save_options, publish_files
-    global auth
+    global auth, certfile
 
     if cmd == None:
         cmd = sys.argv[1:]
@@ -897,7 +901,7 @@ def parse_args(cmd=None):
     try:
         opts, args = getopt.gnu_getopt(cmd, "p:m:d:a:h",
                                        ["picture=","message=", "directory=",
-                                        "auth=", "help", "save-config",
+                                        "auth=", "ssl=", "help", "save-config",
                                         "delete-config", "dl"])
     except Exception, e:
         print e
@@ -935,6 +939,12 @@ def parse_args(cmd=None):
                 sys.exit(1)
             auth = a
 
+        elif o in ['--ssl']:
+            if not os.path.isfile(a):
+                print "PEM file not found: '%s'" % a
+                sys.exit(1)
+            certfile = os.path.abspath(os.path.expanduser(a))
+
         elif o in ['-h', '--help']:
             print USAGE
             sys.exit(0)
@@ -955,6 +965,14 @@ def run():
     socket.setdefaulttimeout(3*60)
     server_address = ('', port)
     httpd = ThreadedHTTPServer(server_address, HTTPUploadHandler)
+    if certfile:
+        try:
+            import ssl
+        except:
+            print "Error: Could not import module 'ssl', exiting."
+            sys.exit(2)
+        httpd.socket = ssl.wrap_socket(httpd.socket, certfile=certfile,
+                                       server_side=True)
     httpd.serve_forever()
 
 
@@ -973,10 +991,12 @@ if __name__ == '__main__':
         save_options()
         print "Options saved in %s" % configfile()
 
+    proto = 'https' if certfile else 'http'
     print "Files will be uploaded to %s" % directory
+    print
+    print ("HTTP server running... Check it out at %s://localhost:%d"
+           % (proto, port))
     try:
-        print
-        print "HTTP server running... Check it out at http://localhost:%d"%port
         run()
     except KeyboardInterrupt:
         print '^C received, shutting down server'
