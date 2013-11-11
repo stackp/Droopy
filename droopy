@@ -68,6 +68,7 @@ import tempfile
 import socket
 import locale
 import urllib
+import base64
 
 LOGO = '''\
  _____                               
@@ -85,6 +86,7 @@ Options:
   -d DIRECTORY, --directory DIRECTORY   set the directory to upload files to
   -m MESSAGE, --message MESSAGE         set the message
   -p PICTURE, --picture PICTURE         set the picture
+  -a USER:PASS, --auth USER:PASS        set the authentication credentials
   --dl                                  provide download links
   --save-config                         save options in a configuration file
   --delete-config                       delete the configuration file and exit
@@ -99,6 +101,7 @@ port = 8000
 directory = os.curdir
 must_save_options = False
 publish_files = False
+auth = None
 
 # -- HTML templates
 
@@ -677,7 +680,19 @@ class HTTPUploadHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
         return templates[page] % dico
 
+    def check_auth(method):
+        def decorated(self, *args):
+            if auth and self.headers.getheader('Authorization') != \
+                                            'Basic ' + base64.b64encode(auth):
+                self.send_response(401)
+                self.send_header('WWW-Authenticate', 'Basic realm=\"Droopy\"')
+                self.send_header('Content-type', 'text/html')
+                self.end_headers()
+            else:
+                method(self, *args)
+        return decorated
 
+    @check_auth
     def do_GET(self):
         name = self.path.lstrip('/')
         name = urllib.unquote(name)
@@ -695,6 +710,7 @@ class HTTPUploadHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             self.send_html(self.html("main"))
 
 
+    @check_auth
     def do_POST(self):
         # Do some browsers /really/ use multipart ? maybe Opera ?
         try:
@@ -840,6 +856,8 @@ def save_options():
         opt.append('--picture=%s' % picture)
     if directory:
         opt.append('--directory=%s' % directory)
+    if auth:
+        opt.append('--auth=%s' % auth)
     if publish_files:
         opt.append('--dl')
     if port:
@@ -867,6 +885,7 @@ def parse_args(cmd=None):
     Parse sys.argv[1:] if no argument is passed.
     """
     global picture, message, port, directory, must_save_options, publish_files
+    global auth
 
     if cmd == None:
         cmd = sys.argv[1:]
@@ -876,11 +895,10 @@ def parse_args(cmd=None):
             
     opts, args = None, None
     try:
-        opts, args = getopt.gnu_getopt(cmd, "p:m:d:h",
-                                       ["picture=","message=",
-                                        "directory=", "help",
-                                        "save-config","delete-config",
-                                        "dl"])
+        opts, args = getopt.gnu_getopt(cmd, "p:m:d:a:h",
+                                       ["picture=","message=", "directory=",
+                                        "auth=", "help", "save-config",
+                                        "delete-config", "dl"])
     except Exception, e:
         print e
         sys.exit(1)
@@ -909,6 +927,13 @@ def parse_args(cmd=None):
 
         elif o in ['--dl']:
             publish_files = True
+
+        elif o in ['-a', '--auth']:
+            if ':' not in a:
+                print "Error: authentication credentials must be " \
+                      "specified as USER:PASSWORD"
+                sys.exit(1)
+            auth = a
 
         elif o in ['-h', '--help']:
             print USAGE
