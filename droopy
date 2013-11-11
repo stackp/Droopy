@@ -831,6 +831,9 @@ class ThreadedHTTPServer(SocketServer.ThreadingMixIn,
 
 # -- Options
 
+def fullpath(path):
+    return os.path.abspath(os.path.expanduser(path))
+
 def configfile():
     appname = 'droopy'
     # os.name is 'posix', 'nt', 'os2', 'mac', 'ce' or 'riscos'
@@ -909,13 +912,13 @@ def parse_args(cmd=None):
 
     for o,a in opts:
         if o in ["-p", "--picture"] :
-            picture = os.path.expanduser(a)
+            picture = fullpath(a)
 
         elif o in ["-m", "--message"] :
             message = a
 
         elif o in ['-d', '--directory']:
-            directory = a
+            directory = fullpath(a)
             
         elif o in ['--save-config']:
             must_save_options = True
@@ -943,7 +946,7 @@ def parse_args(cmd=None):
             if not os.path.isfile(a):
                 print "PEM file not found: '%s'" % a
                 sys.exit(1)
-            certfile = os.path.abspath(os.path.expanduser(a))
+            certfile = fullpath(a)
 
         elif o in ['-h', '--help']:
             print USAGE
