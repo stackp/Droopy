@@ -86,9 +86,10 @@ Options:
   -d DIRECTORY, --directory DIRECTORY   set the directory to upload files to
   -m MESSAGE, --message MESSAGE         set the message
   -p PICTURE, --picture PICTURE         set the picture
+  --dl                                  provide download links
   -a USER:PASS, --auth USER:PASS        set the authentication credentials
   --ssl PEMFILE                         set up https using the certificate file
-  --dl                                  provide download links
+  --chmod MODE                          set the file permissions (octal value)
   --save-config                         save options in a configuration file
   --delete-config                       delete the configuration file and exit
 
