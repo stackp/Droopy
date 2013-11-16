@@ -142,7 +142,7 @@ a {color: #4499cc; text-decoration: none;}
   text-align: left;
   overflow: auto;
   margin-bottom: 20px;
-  border: 1px solid #e5e5e5;
+  border-top: 2px dotted #e5e5e5;
 }
 #files a {text-decoration: none; display: block; padding: 4px 20px;}
 #files a:link {color: #4499cc}
