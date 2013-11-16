@@ -157,7 +157,11 @@ userinfo = '''
 </div>
 '''
 
-maintmpl = '''<html><head><title>%(maintitle)s</title>
+maintmpl = '''
+<!doctype html>
+<html>
+<head>
+<title>%(maintitle)s</title>
 ''' + style + '''
 <script language="JavaScript">
 function swap() {
@@ -185,24 +189,28 @@ function onunload() {
 <div id="wrapform" class="container">
   <div id="form" class="box">
     <form method="post" enctype="multipart/form-data" action="">
-      <input name="upfile" type="file">
+      <input name="upfile" type="file" multiple="yes">
       <input value="%(submit)s" onclick="swap()" type="submit">
     </form>
   </div>
   <div id="sending" class="box">
-    <table id="progress"><tr>
-      <td id="cell-0"/><td id="cell-1"/><td id="cell-2"/>
-      <td id="cell-3"/><td id="cell-4"/>
-    </tr></table>
+    <table id="progress">
+      <tr>
+        <td id="cell-0"/><td id="cell-1"/><td id="cell-2"/>
+        <td id="cell-3"/><td id="cell-4"/>
+      </tr>
+    </table>
     <div class="text">%(sending)s</div>
   </div>
 </div>
 ''' + userinfo + '''
 %(files)s
-</body></html>
+</body>
+</html>
 '''
 
 successtmpl = '''
+<!doctype html>
 <html>
 <head><title> %(successtitle)s </title>
 ''' + style + '''
@@ -220,6 +228,7 @@ successtmpl = '''
 '''
 
 errortmpl = '''
+<!doctype html>
 <html>
 <head><title> %(errortitle)s </title>
 ''' + style + '''
@@ -702,34 +711,39 @@ class HTTPUploadHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
             # -- Save file (numbered to avoid overwriting, ex: foo-3.png)
             form = DroopyFieldStorage(fp = self.rfile, environ = env);
-            fileitem = form[self.form_field]
-            filename = self.basename(fileitem.filename).decode('utf-8')
-            if filename == "":
-                self.send_response(303)
-                self.send_header('Location', '/')
-                self.end_headers()
-                return
+            file_items = form[self.form_field]
 
-            localpath = os.path.join(directory, filename).encode('utf-8')
-            root, ext = os.path.splitext(localpath)
-            i = 1
-            # race condition, but hey...
-            while (os.path.exists(localpath)):
-                localpath = "%s-%d%s" % (root, i, ext)
-                i = i+1
-            if hasattr(fileitem, 'tmpfile'):
-                # DroopyFieldStorage.make_file() has been called
-                fileitem.tmpfile.close()
-                shutil.move(fileitem.tmpfilename, localpath)
-            else:
-                # no temporary file, self.file is a StringIO()
-                # see cgi.FieldStorage.read_lines()
-                fout = file(localpath, 'wb')
-                shutil.copyfileobj(fileitem.file, fout)
-                fout.close()
-            if file_mode is not None:
-                os.chmod(localpath, file_mode)
-            self.log_message("Received: %s", os.path.basename(localpath))
+            #-- Handle multiple file upload
+            if not isinstance(file_items, list):
+                file_items = [file_items]
+
+            for item in file_items:
+                filename = self.basename(item.filename).decode('utf-8')
+                if filename == "":
+                    filename = "no-name"
+
+                localpath = os.path.join(directory, filename).encode('utf-8')
+                root, ext = os.path.splitext(localpath)
+                i = 1
+
+                # race condition, but hey...
+                while (os.path.exists(localpath)):
+                    localpath = "%s-%d%s" % (root, i, ext)
+                    i = i + 1
+                if hasattr(item, 'tmpfile'):
+                    # DroopyFieldStorage.make_file() has been called
+                    item.tmpfile.close()
+                    shutil.move(item.tmpfilename, localpath)
+                else:
+                    # no temporary file, self.file is a StringIO()
+                    # see cgi.FieldStorage.read_lines()
+                    fout = file(localpath, 'wb')
+                    shutil.copyfileobj(item.file, fout)
+                    fout.close()
+
+                if file_mode is not None:
+                    os.chmod(localpath, file_mode)
+                self.log_message("Received: %s", os.path.basename(localpath))
 
             # -- Reply
             if publish_files:
