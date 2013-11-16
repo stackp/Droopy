@@ -118,12 +118,12 @@ body {text-align: center; background-color: #fff; font-family: sans-serif;
 div {word-wrap: break-word;}
 img {max-width: 100%%;}
 a {color: #4499cc; text-decoration: none;}
+.container { max-width: 95%%; margin: auto; }
 .box {padding-top: 20px; padding-bottom: 20px;}
 #linkurl {background-color: #333;}
 #linkurl a {color: #ddd; text-decoration: none;}
 #linkurl a:hover {color: #fff;}
-#message {width: 600px; max-width: 90%%; margin: auto; padding:5px;
-          font-size: 2em; font-weight: lighter;
+#message {padding: 5px 0; font-size: 2em; font-weight: lighter;
           letter-spacing: -2px; line-height: 50px; color: #aaa;}
 #sending {display: none; font-style: italic;}
 #wrapform {height: 90px; padding-top:20px;}
@@ -133,7 +133,7 @@ a {color: #4499cc; text-decoration: none;}
               padding: 0px; border-radius: 90px; box-shadow: 0 0 3px #bbb;}
 #userinfo {padding-bottom: 20px;}
 #files {
-  width: 600px;
+  max-width: 700px;
   margin: auto;
   padding: 13px 0;
   text-align: left;
@@ -148,7 +148,7 @@ a {color: #4499cc; text-decoration: none;}
 --></style>'''
 
 userinfo = '''
-<div id="userinfo">
+<div id="userinfo" class="container">
   %(message)s
   %(divpicture)s
 </div>
@@ -179,7 +179,7 @@ function onunload() {
 </script></head>
 <body>
 %(linkurl)s
-<div id="wrapform">
+<div id="wrapform" class="container">
   <div id="form" class="box">
     <form method="post" enctype="multipart/form-data" action="">
       <input name="upfile" type="file">
@@ -203,7 +203,7 @@ successtmpl = '''
 ''' + style + '''
 </head>
 <body>
-<div id="wrapform">
+<div id="wrapform" class="container">
   <div class="box">
     %(received)s
     <a href="/"> %(another)s </a>
@@ -220,7 +220,7 @@ errortmpl = '''
 ''' + style + '''
 </head>
 <body>
-<div id="wrapform">
+<div id="wrapform" class="container">
   <div class="box">
     %(problem)s
     <a href="/"> %(retry)s </a>
@@ -639,7 +639,7 @@ class HTTPUploadHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                 links += '<a href="/%s">%s</a>' % (
                                 urllib.quote(name.encode('utf-8')),
                                 name)
-            links = '<div id="files">' + links + '</div>'
+            links = '<div id="files" class="container">' + links + '</div>'
         dico["files"] = links
 
         # -- Add a link to discover the url
