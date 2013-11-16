@@ -720,7 +720,7 @@ class HTTPUploadHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             for item in file_items:
                 filename = self.basename(item.filename).decode('utf-8')
                 if filename == "":
-                    filename = "no-name"
+                    continue
 
                 localpath = os.path.join(directory, filename).encode('utf-8')
                 root, ext = os.path.splitext(localpath)
