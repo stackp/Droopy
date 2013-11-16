@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*- 
+# -*- coding: utf-8 -*-
 
 # Droopy (http://stackp.online.fr/droopy)
 # Copyright 2008-2012 (c) Pierre Duquesne <stackp@online.fr>
@@ -71,7 +71,7 @@ import urllib
 import base64
 
 LOGO = '''\
- _____                               
+ _____
 |     \.----.-----.-----.-----.--.--.
 |  --  |   _|  _  |  _  |  _  |  |  |
 |_____/|__| |_____|_____|   __|___  |
@@ -91,10 +91,10 @@ Options:
   --dl                                  provide download links
   --save-config                         save options in a configuration file
   --delete-config                       delete the configuration file and exit
-  
+
 Example:
    droopy -m "Hi, this is Bob. You can send me a file." -p avatar.png
-''' 
+'''
 
 picture = None
 message = ""
@@ -174,7 +174,7 @@ function update() {
 }
 function onunload() {
    document.getElementById("form").style.display = "block";
-   document.getElementById("sending").style.display = "none";	  
+   document.getElementById("sending").style.display = "none";
 }
 </script></head>
 <body>
@@ -229,7 +229,7 @@ errortmpl = '''
 ''' + userinfo + '''
 </body>
 </html>
-''' 
+'''
 
 linkurltmpl = '''<div id="linkurl" class="box">
 <a href="http://stackp.online.fr/droopy-ip.php?port=%(port)d"> %(discover)s
@@ -596,7 +596,7 @@ class HTTPUploadHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         page can be "main", "success", or "error"
         returns an html page (in the appropriate language) as a string
         """
-        
+
         # -- Parse accept-language header
         if not self.headers.has_key("accept-language"):
             a = []
@@ -610,7 +610,7 @@ class HTTPUploadHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             a.reverse()
             a = [x[1] for x in a]
         # now a is an ordered list of preferred languages
-            
+
         # -- Choose the appropriate translation dictionary (default is english)
         lang = "en"
         for l in a:
@@ -686,7 +686,7 @@ class HTTPUploadHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         # Do some browsers /really/ use multipart ? maybe Opera ?
         try:
             self.log_message("Started file transfer")
-            
+
             # -- Set up environment for cgi.FieldStorage
             env = {}
             env['REQUEST_METHOD'] = self.command
@@ -704,12 +704,12 @@ class HTTPUploadHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                 self.send_header('Location', '/')
                 self.end_headers()
                 return
-            
+
             localpath = os.path.join(directory, filename).encode('utf-8')
             root, ext = os.path.splitext(localpath)
             i = 1
             # race condition, but hey...
-            while (os.path.exists(localpath)): 
+            while (os.path.exists(localpath)):
                 localpath = "%s-%d%s" % (root, i, ext)
                 i = i+1
             if hasattr(fileitem, 'tmpfile'):
@@ -842,7 +842,7 @@ def save_options():
     f.write('\n'.join(opt).encode('utf8'))
     f.close()
 
-    
+
 def load_options():
     try:
         f = open(configfile())
@@ -868,7 +868,7 @@ def parse_args(cmd=None):
         lang, encoding = locale.getdefaultlocale()
         if encoding != None:
             cmd = [a.decode(encoding) for a in cmd]
-            
+
     opts, args = None, None
     try:
         opts, args = getopt.gnu_getopt(cmd, "p:m:d:a:h",
@@ -888,7 +888,7 @@ def parse_args(cmd=None):
 
         elif o in ['-d', '--directory']:
             directory = fullpath(a)
-            
+
         elif o in ['--save-config']:
             must_save_options = True
 
@@ -930,7 +930,7 @@ def parse_args(cmd=None):
         sys.exit(1)
 
 
-# -- 
+# --
 
 def run():
     """Run the webserver."""
@@ -958,7 +958,7 @@ if __name__ == '__main__':
         print 'Configuration found in %s' % configfile()
     else:
         print "No configuration file found."
-        
+
     if must_save_options:
         save_options()
         print "Options saved in %s" % configfile()
