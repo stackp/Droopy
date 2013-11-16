@@ -779,7 +779,7 @@ class HTTPUploadHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             names = [name for name in os.listdir(unicode(directory))
                      if os.path.isfile(os.path.join(directory, name))
                      and not name.startswith(DroopyFieldStorage.TMPPREFIX)]
-            names.sort()
+            names.sort(key=lambda s: s.lower())
         else:
             names = []
         return names
