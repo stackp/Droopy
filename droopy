@@ -142,12 +142,12 @@ a {color: #4499cc; text-decoration: none;}
   text-align: left;
   overflow: auto;
   margin-bottom: 20px;
-  border-top: 2px dotted #e5e5e5;
 }
-#files a {text-decoration: none; display: block; padding: 4px 20px;}
+#files a {text-decoration: none; display: block; padding: 10px 20px;}
+#files a:nth-child(2n+1) {background-color: #F9F9F9;}
 #files a:link {color: #4499cc}
 #files a:visited {color: #a0c0e0}
-#files a:hover {background-color:#fafaff}
+#files a:hover {background-color:#f5f5f5}
 --></style>'''
 
 userinfo = '''
