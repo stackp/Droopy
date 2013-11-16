@@ -127,6 +127,7 @@ a {color: #4499cc; text-decoration: none;}
 #message {padding: 5px 0; font-size: 2em; font-weight: lighter;
           letter-spacing: -2px; line-height: 50px; color: #aaa;}
 #sending {display: none; font-style: italic;}
+#sending .text {padding-top: 10px; color: #bbb; font-size: 0.8em;}
 #wrapform {height: 90px; padding-top:20px;}
 #progress {display: inline;  border-collapse: separate; empty-cells: show;
            border-spacing: 24px 0; padding: 0; vertical-align: bottom;}
@@ -161,18 +162,18 @@ maintmpl = '''<html><head><title>%(maintitle)s</title>
 function swap() {
    document.getElementById("form").style.display = "none";
    document.getElementById("sending").style.display = "block";
-   update();
+   pulse(0);
 }
-ncell = 4;
-curcell = 0;
-function update() {
-   setTimeout(update, 300);
-   e = document.getElementById("cell"+curcell);
-   e.style.backgroundColor = "#eee";
-   curcell = (curcell+1) %% ncell
-   e = document.getElementById("cell"+curcell);
-   e.style.backgroundColor = "#7ac";
+
+function pulse(i) {
+    var NUMCELL = 5;
+    var cell = document.getElementById("cell-" + (i %% NUMCELL));
+    var prev = document.getElementById("cell-"+((i - 1 + NUMCELL) %% NUMCELL));
+    cell.style.backgroundColor = "#7ac";
+    prev.style.backgroundColor = "#eee";
+    setTimeout(function() {pulse(i+1);}, 300);
 }
+
 function onunload() {
    document.getElementById("form").style.display = "block";
    document.getElementById("sending").style.display = "none";
@@ -187,10 +188,12 @@ function onunload() {
       <input value="%(submit)s" onclick="swap()" type="submit">
     </form>
   </div>
-  <div id="sending" class="box"> %(sending)s &nbsp;
+  <div id="sending" class="box">
     <table id="progress"><tr>
-      <td id="cell0"/><td id="cell1"/><td id="cell2"/><td id="cell3"/>
+      <td id="cell-0"/><td id="cell-1"/><td id="cell-2"/>
+      <td id="cell-3"/><td id="cell-4"/>
     </tr></table>
+    <div class="text">%(sending)s</div>
   </div>
 </div>
 ''' + userinfo + '''
