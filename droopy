@@ -104,6 +104,7 @@ must_save_options = False
 publish_files = False
 auth = None
 certfile = None
+file_mode = None
 
 # -- HTML templates
 
@@ -722,6 +723,8 @@ class HTTPUploadHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                 fout = file(localpath, 'wb')
                 shutil.copyfileobj(fileitem.file, fout)
                 fout.close()
+            if file_mode is not None:
+                os.chmod(localpath, file_mode)
             self.log_message("Received: %s", os.path.basename(localpath))
 
             # -- Reply
@@ -834,6 +837,8 @@ def save_options():
         opt.append('--auth=%s' % auth)
     if certfile:
         opt.append('--ssl=%s' % certfile)
+    if file_mode:
+        opt.append('--chmod=%s' % file_mode)
     if publish_files:
         opt.append('--dl')
     if port:
@@ -861,7 +866,7 @@ def parse_args(cmd=None):
     Parse sys.argv[1:] if no argument is passed.
     """
     global picture, message, port, directory, must_save_options, publish_files
-    global auth, certfile
+    global auth, certfile, file_mode
 
     if cmd == None:
         cmd = sys.argv[1:]
@@ -873,13 +878,13 @@ def parse_args(cmd=None):
     try:
         opts, args = getopt.gnu_getopt(cmd, "p:m:d:a:h",
                                        ["picture=","message=", "directory=",
-                                        "auth=", "ssl=", "help", "save-config",
-                                        "delete-config", "dl"])
+                                        "auth=", "ssl=", "chmod=", "help",
+                                        "save-config", "delete-config", "dl"])
     except Exception, e:
         print e
         sys.exit(1)
 
-    for o,a in opts:
+    for o, a in opts:
         if o in ["-p", "--picture"] :
             picture = fullpath(a)
 
@@ -916,6 +921,14 @@ def parse_args(cmd=None):
                 print "PEM file not found: '%s'" % a
                 sys.exit(1)
             certfile = fullpath(a)
+
+        elif o in ['--chmod']:
+            try:
+                file_mode = int(a, 8)
+            except ValueError:
+                print "Invalid octal value passed to chmod option: '%s'" % a
+                sys.exit(1)
+
 
         elif o in ['-h', '--help']:
             print USAGE
