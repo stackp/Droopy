@@ -299,10 +299,10 @@ en = {"maintitle":       "Send a file",
       "submit":          "Send",
       "sending":         "Sending",
       "successtitle":    "File received",
-      "received":        "File received !",
+      "received":        "File received!",
       "another":         "Send another file.",
       "errortitle":      "Problem",
-      "problem":         "There has been a problem !",
+      "problem":         "There has been a problem!",
       "retry":           "Retry.",
       "discover":        "Discover the address of this page"}
 
