@@ -889,10 +889,13 @@ def parse_args(cmd=None):
         sys.exit(1)
 
     for o, a in opts:
-        if o in ["-p", "--picture"] :
-            picture = fullpath(a)
+        if o in ["-p", "--picture"]:
+            if os.path.exists(a):
+                picture = fullpath(a)
+            else:
+                print "Picture not found: '%s'" % a
 
-        elif o in ["-m", "--message"] :
+        elif o in ["-m", "--message"]:
             message = a
 
         elif o in ['-d', '--directory']:
