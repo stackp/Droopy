@@ -113,73 +113,38 @@ style = '''
 <style type="text/css">
 <!--
 * {margin: 0; padding: 0;}
-body {text-align: center; background-color: #fff;}
+body {text-align: center; background-color: #fff; font-family: sans-serif;
+      color:#777;}
+div {word-wrap: break-word;}
 img {max-width: 100%%;}
-.box {padding-top: 20px; padding-bottom: 20px}
+a {color: #4499cc; text-decoration: none;}
+.box {padding-top: 20px; padding-bottom: 20px;}
 #linkurl {background-color: #333;}
 #linkurl a {color: #ddd; text-decoration: none;}
 #linkurl a:hover {color: #fff;}
-#message {width: 350px; max-width: 90%%; margin: auto; padding:5px;}
-#sending {display: none;}
+#message {width: 600px; max-width: 90%%; margin: auto; padding:5px;
+          font-size: 2em; font-weight: lighter;
+          letter-spacing: -2px; line-height: 50px; color: #aaa;}
+#sending {display: none; font-style: italic;}
 #wrapform {height: 90px; padding-top:20px;}
 #progress {display: inline;  border-collapse: separate; empty-cells: show;
-           border-spacing: 10px 0; padding: 0; vertical-align: bottom;}
-#progress td {height: 25px; width: 23px; background-color: #fff;
-              border: 1px solid #666; padding: 0px;}
+           border-spacing: 24px 0; padding: 0; vertical-align: bottom;}
+#progress td {height: 17px; width: 17px; background-color: #eee;
+              padding: 0px; border-radius: 90px; box-shadow: 0 0 3px #bbb;}
 #userinfo {padding-bottom: 20px;}
 #files {
   width: 600px;
   margin: auto;
+  padding: 13px 0;
   text-align: left;
   overflow: auto;
-  padding: 20px;
   margin-bottom: 20px;
-  border: 1px solid #ccc;
+  border: 1px solid #e5e5e5;
 }
-#files a {text-decoration: none}
-#files a:link {color: #0088ff}
-#files a:visited {color: #1d548a}
-#files a:hover {text-decoration: underline}
-
-/* Speech bubble from http://nicolasgallagher.com/pure-css-speech-bubbles/ */
-.bubble {
-  position:relative;
-  padding:15px;
-  margin:1em 0 3em;
-  border:1px solid #999;
-  color:#000;
-  background:#fff;
-  /* css3 */
-  -webkit-border-radius:5px;
-  -moz-border-radius:5px;
-  border-radius:5px;
-}
-
-.bubble:before {
-  content:"";
-  position:absolute;
-  bottom:-14px; /* value = - border-top-width - border-bottom-width */
-  left:100px; /* controls horizontal position */
-  border-width:14px 14px 0;
-  border-style:solid;
-  border-color:#333 transparent;
-  /* reduce the damage in FF3.0 */
-  display:block;
-  width:0;
-}
-
-.bubble:after {
-  content:"";
-  position:absolute;
-  bottom:-13px; /* value = - border-top-width - border-bottom-width */
-  left:101px; /* value = (:before left) + (:before border-left) - (:after border-left) */
-  border-width:13px 13px 0;
-  border-style:solid;
-  border-color:#fff transparent;
-  /* reduce the damage in FF3.0 */
-  display:block;
-  width:0;
-}
+#files a {text-decoration: none; display: block; padding: 4px 20px;}
+#files a:link {color: #4499cc}
+#files a:visited {color: #a0c0e0}
+#files a:hover {background-color:#fafaff}
 --></style>'''
 
 userinfo = '''
@@ -202,10 +167,10 @@ curcell = 0;
 function update() {
    setTimeout(update, 300);
    e = document.getElementById("cell"+curcell);
-   e.style.backgroundColor = "#fff";
+   e.style.backgroundColor = "#eee";
    curcell = (curcell+1) %% ncell
    e = document.getElementById("cell"+curcell);
-   e.style.backgroundColor = "#369";
+   e.style.backgroundColor = "#7ac";
 }
 function onunload() {
    document.getElementById("form").style.display = "block";
@@ -656,7 +621,7 @@ class HTTPUploadHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
         # -- Set message and picture
         if message:
-            dico["message"] = ('<div id="message" class="bubble">%s</div>' %
+            dico["message"] = ('<div id="message">%s</div>' %
                                message)
         else:
             dico["message"] = ""
@@ -671,7 +636,7 @@ class HTTPUploadHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         names = self.published_files()
         if names:
             for name in names:
-                links += '<a href="/%s">%s</a><br/>' % (
+                links += '<a href="/%s">%s</a>' % (
                                 urllib.quote(name.encode('utf-8')),
                                 name)
             links = '<div id="files">' + links + '</div>'
