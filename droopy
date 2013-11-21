@@ -115,12 +115,12 @@ style = '''
 <style type="text/css">
 <!--
 * {margin: 0; padding: 0;}
-body {text-align: center; background-color: #fff; font-family: sans-serif;
+body {text-align: center; background-color: #eee; font-family: sans-serif;
       color:#777;}
 div {word-wrap: break-word;}
 img {max-width: 100%%;}
 a {color: #4499cc; text-decoration: none;}
-.container { max-width: 95%%; margin: auto; }
+.container {max-width: 700px; margin: auto; background-color: #fff;}
 .box {padding-top: 20px; padding-bottom: 20px;}
 #linkurl {background-color: #333;}
 #linkurl a {color: #ddd; text-decoration: none;}
@@ -129,14 +129,13 @@ a {color: #4499cc; text-decoration: none;}
           letter-spacing: -2px; line-height: 50px; color: #aaa;}
 #sending {display: none; font-style: italic;}
 #sending .text {padding-top: 10px; color: #bbb; font-size: 0.8em;}
-#wrapform {height: 90px; padding-top:20px;}
+#wrapform {height: 90px; padding-top:40px;}
 #progress {display: inline;  border-collapse: separate; empty-cells: show;
            border-spacing: 24px 0; padding: 0; vertical-align: bottom;}
 #progress td {height: 17px; width: 17px; background-color: #eee;
               padding: 0px; border-radius: 90px; box-shadow: 0 0 3px #bbb;}
 #userinfo {padding-bottom: 20px;}
 #files {
-  max-width: 700px;
   margin: auto;
   padding: 13px 0;
   text-align: left;
@@ -144,14 +143,14 @@ a {color: #4499cc; text-decoration: none;}
   margin-bottom: 20px;
 }
 #files a {text-decoration: none; display: block; padding: 10px 20px;}
-#files a:nth-child(2n+1) {background-color: #F9F9F9;}
+#files a:nth-child(2n+1) {background-color: #F7F7F7;}
 #files a:link {color: #4499cc}
 #files a:visited {color: #a0c0e0}
-#files a:hover {background-color:#f5f5f5}
+#files a:hover {background-color:#f0f0f0}
 --></style>'''
 
 userinfo = '''
-<div id="userinfo" class="container">
+<div id="userinfo">
   %(message)s
   %(divpicture)s
 </div>
@@ -186,7 +185,8 @@ function onunload() {
 </script></head>
 <body>
 %(linkurl)s
-<div id="wrapform" class="container">
+<div class="container">
+<div id="wrapform">
   <div id="form" class="box">
     <form method="post" enctype="multipart/form-data" action="">
       <input name="upfile" type="file" multiple="yes">
@@ -205,6 +205,7 @@ function onunload() {
 </div>
 ''' + userinfo + '''
 %(files)s
+</div>
 </body>
 </html>
 '''
@@ -216,13 +217,15 @@ successtmpl = '''
 ''' + style + '''
 </head>
 <body>
-<div id="wrapform" class="container">
+<div class="container">
+<div id="wrapform">
   <div class="box">
     %(received)s
     <a href="/"> %(another)s </a>
   </div>
 </div>
 ''' + userinfo + '''
+</div>
 </body>
 </html>
 '''
@@ -234,13 +237,15 @@ errortmpl = '''
 ''' + style + '''
 </head>
 <body>
-<div id="wrapform" class="container">
+<div class="container">
+<div id="wrapform">
   <div class="box">
     %(problem)s
     <a href="/"> %(retry)s </a>
   </div>
 </div>
 ''' + userinfo + '''
+</div>
 </body>
 </html>
 '''
@@ -653,7 +658,7 @@ class HTTPUploadHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                 links += '<a href="/%s">%s</a>' % (
                                 urllib.quote(name.encode('utf-8')),
                                 name)
-            links = '<div id="files" class="container">' + links + '</div>'
+            links = '<div id="files">' + links + '</div>'
         dico["files"] = links
 
         # -- Add a link to discover the url
