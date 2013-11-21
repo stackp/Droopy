@@ -251,7 +251,7 @@ errortmpl = '''
 '''
 
 linkurltmpl = '''<div id="linkurl" class="box">
-<a href="http://stackp.online.fr/droopy-ip.php?port=%(port)d"> %(discover)s
+<a href="http://stackp.online.fr/droopy-ip.php?port=%(port)d&ssl=%(ssl)d"> %(discover)s
 </a></div>'''
 
 
@@ -664,6 +664,7 @@ class HTTPUploadHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         # -- Add a link to discover the url
         if self.client_address[0] == "127.0.0.1":
             dico["port"] = self.server.server_port
+            dico["ssl"] = int(certfile is not None)
             dico["linkurl"] =  linkurltmpl % dico
         else:
             dico["linkurl"] = ""
