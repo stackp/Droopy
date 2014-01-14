@@ -97,6 +97,7 @@ Options:
   --chmod MODE                          set the file permissions (octal value)
   --save-config                         save options in a configuration file
   --delete-config                       delete the configuration file and exit
+  -o, --overwrite			overwrite existing files
 
 Example:
    droopy -m "Hi, this is Bob. You can send me a file." -p avatar.png
@@ -111,6 +112,7 @@ publish_files = False
 auth = None
 certfile = None
 file_mode = None
+overwrite = False
 
 # -- HTML templates
 
@@ -737,10 +739,11 @@ class HTTPUploadHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                 root, ext = os.path.splitext(localpath)
                 i = 1
 
-                # race condition, but hey...
-                while (os.path.exists(localpath)):
-                    localpath = "%s-%d%s" % (root, i, ext)
-                    i = i + 1
+                if not overwrite:
+                    # race condition, but hey...
+		    while (os.path.exists(localpath)):
+                        localpath = "%s-%d%s" % (root, i, ext)
+                        i = i + 1
                 if hasattr(item, 'tmpfile'):
                     # DroopyFieldStorage.make_file() has been called
                     item.tmpfile.close()
@@ -872,6 +875,8 @@ def save_options():
         opt.append('--dl')
     if port:
         opt.append('%d' % port)
+    if overwrite:
+        opt.append('--overwrite')
     f = open(configfile(), 'w')
     f.write('\n'.join(opt).encode('utf8'))
     f.close()
@@ -894,7 +899,7 @@ def parse_args(cmd=None):
 
     Parse sys.argv[1:] if no argument is passed.
     """
-    global picture, message, port, directory, must_save_options, publish_files
+    global picture, message, port, directory, must_save_options, publish_files, overwrite
     global auth, certfile, file_mode
 
     if cmd == None:
@@ -905,9 +910,9 @@ def parse_args(cmd=None):
 
     opts, args = None, None
     try:
-        opts, args = getopt.gnu_getopt(cmd, "p:m:d:a:h",
+        opts, args = getopt.gnu_getopt(cmd, "p:m:d:a:h:o",
                                        ["picture=","message=", "directory=",
-                                        "auth=", "ssl=", "chmod=", "help",
+                                        "auth=", "ssl=", "chmod=", "help", "overwrite",
                                         "save-config", "delete-config", "dl"])
     except Exception, e:
         print e
@@ -960,6 +965,9 @@ def parse_args(cmd=None):
             except ValueError:
                 print "Invalid octal value passed to chmod option: '%s'" % a
                 sys.exit(1)
+
+        elif o in ['-o', '--overwrite']:
+            overwrite = True
 
 
         elif o in ['-h', '--help']:
