@@ -6,6 +6,7 @@
 # Licensed under the New BSD License.
 
 # Changelog
+#   20141028 * Added bulk download as zip
 #   20131121 * Update HTML/CSS for mobile devices
 #            * Add HTTPS support
 #            * Add HTTP basic authentication
@@ -74,6 +75,8 @@ import socket
 import locale
 import urllib
 import base64
+import zipfile
+import threading
 
 LOGO = '''\
  _____
@@ -620,6 +623,19 @@ class HTTPUploadHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         page can be "main", "success", or "error"
         returns an html page (in the appropriate language) as a string
         """
+        #path = self.translate_path(self.path)
+        if self.path.endswith('?download'):
+                tmp_file = "tmp.zip"
+                self.path = self.path.replace("?download","")
+        
+                zip = zipfile.ZipFile(tmp_file, 'w')
+                for file in self.published_files():
+                    print "Files added to the archive %s" % file
+                    zip.write(os.path.join(directory, file),file)
+                zip.close()
+                self.send_file(tmp_file)
+                os.remove(tmp_file)
+
 
         # -- Parse accept-language header
         if not self.headers.has_key("accept-language"):
@@ -663,7 +679,7 @@ class HTTPUploadHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                 links += '<a href="/%s">%s</a>' % (
                                 urllib.quote(name.encode('utf-8')),
                                 name)
-            links = '<div id="files">' + links + '</div>'
+            links = '<a href="?download">Download all</a><div id="files">' + links + '</div>'
         dico["files"] = links
 
         # -- Add a link to discover the url
