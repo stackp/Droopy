@@ -56,24 +56,47 @@
 #   20080620 * Czech translation by Jiří.
 #            * German translation by Michael.
 #   20080408 * First release.
+from __future__ import print_function
+import sys
+if sys.version_info >= (3,0):
+    from http import server as httpserver
+    import socketserver
+    from urllib import parse as urllibparse
+    unicode = str
+else:
+    import BaseHTTPServer as httpserver
+    import SocketServer as socketserver
+    import urllib as urllibparse
 
-import BaseHTTPServer
-import SocketServer
 import cgi
 import os
 import posixpath
 import macpath
 import ntpath
-import sys
 import getopt
+import argparse
 import mimetypes
 import copy
 import shutil
 import tempfile
 import socket
 import locale
-import urllib
 import base64
+
+
+def _decode_str_if_py2(inputstr, encoding):
+    "Will return decoded with given encoding *if* input is a string and it's Py2."
+    if sys.version_info < (3,) and isinstance(inputstr, str):
+        return inputstr.decode(encoding)
+    else:
+        return inputstr
+
+def _encode_str_if_py2(inputstr, encoding):
+    "Will return encoded with given encoding *if* input is a string and it's Py2"
+    if sys.version_info < (3,) and isinstance(inputstr, str):
+        return inputstr.encode(encoding)
+    else:
+        return inputstr
 
 LOGO = '''\
  _____
@@ -81,25 +104,6 @@ LOGO = '''\
 |  --  |   _|  _  |  _  |  _  |  |  |
 |_____/|__| |_____|_____|   __|___  |
                         |__|  |_____|
-'''
-
-USAGE='''\
-Usage: droopy [options] [PORT]
-
-Options:
-  -h, --help                            show this help message and exit
-  -d DIRECTORY, --directory DIRECTORY   set the directory to upload files to
-  -m MESSAGE, --message MESSAGE         set the message
-  -p PICTURE, --picture PICTURE         set the picture
-  --dl                                  provide download links
-  -a USER:PASS, --auth USER:PASS        set the authentication credentials
-  --ssl PEMFILE                         set up https using the certificate file
-  --chmod MODE                          set the file permissions (octal value)
-  --save-config                         save options in a configuration file
-  --delete-config                       delete the configuration file and exit
-
-Example:
-   droopy -m "Hi, this is Bob. You can send me a file." -p avatar.png
 '''
 
 picture = None
@@ -608,7 +612,7 @@ class DroopyFieldStorage(cgi.FieldStorage):
         return self.tmpfile
 
 
-class HTTPUploadHandler(BaseHTTPServer.BaseHTTPRequestHandler):
+class HTTPUploadHandler(httpserver.BaseHTTPRequestHandler):
 
     protocol_version = 'HTTP/1.0'
     form_field = 'upfile'
@@ -622,9 +626,8 @@ class HTTPUploadHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         """
 
         # -- Parse accept-language header
-        if not self.headers.has_key("accept-language"):
-            a = []
-        else:
+        #if not self.headers.has_key("accept-language"):
+        if "accept-language" in self.headers:
             a = self.headers["accept-language"]
             a = a.split(',')
             a = [e.split(';q=') for e in  a]
@@ -634,11 +637,13 @@ class HTTPUploadHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             a.reverse()
             a = [x[1] for x in a]
         # now a is an ordered list of preferred languages
+        else:
+            a = []
 
         # -- Choose the appropriate translation dictionary (default is english)
         lang = "en"
         for l in a:
-            if translations.has_key(l):
+            if l in translations: #.has_key(l):
                 lang = l
                 break
         dico = copy.copy(translations[lang])
@@ -661,7 +666,7 @@ class HTTPUploadHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         if names:
             for name in names:
                 links += '<a href="/%s">%s</a>' % (
-                                urllib.quote(name.encode('utf-8')),
+                                urllibparse.quote(_encode_str_if_py2(name, "utf-8")),
                                 name)
             links = '<div id="files">' + links + '</div>'
         dico["files"] = links
@@ -691,8 +696,8 @@ class HTTPUploadHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     @check_auth
     def do_GET(self):
         name = self.path.lstrip('/')
-        name = urllib.unquote(name)
-        name = name.decode('utf-8')
+        name = urllibparse.unquote(name)
+        name = _decode_str_if_py2(name, 'utf-8')
 
         if picture != None and self.path == '/__droopy/picture':
             # send the picture
@@ -715,25 +720,36 @@ class HTTPUploadHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             # -- Set up environment for cgi.FieldStorage
             env = {}
             env['REQUEST_METHOD'] = self.command
-            if self.headers.typeheader is None:
-                env['CONTENT_TYPE'] = self.headers.type
-            else:
-                env['CONTENT_TYPE'] = self.headers.typeheader
+            self.log_message("Got command: " + repr(self.command))
+            #if self.headers.typeheader is None:
+            #    env['CONTENT_TYPE'] = self.headers.type
+            #else:
+            #    env['CONTENT_TYPE'] = self.headers.typeheader
+            headers = dict(self.headers)
+            env['CONTENT_TYPE'] = headers.get('typeheader',
+                                    headers.get('type',
+                                        headers.get('Content-Type',
+                                            'application/octet-stream')))
 
+            self.log_message("Content type: " + env['CONTENT_TYPE'])
             # -- Save file (numbered to avoid overwriting, ex: foo-3.png)
             form = DroopyFieldStorage(fp = self.rfile, environ = env);
+            self.log_message("Got form data..")
             file_items = form[self.form_field]
+            self.log_message("Got file_items: " + repr(file_items))
 
             #-- Handle multiple file upload
             if not isinstance(file_items, list):
                 file_items = [file_items]
 
+            self.log_message("Iterating file_items")
             for item in file_items:
-                filename = self.basename(item.filename).decode('utf-8')
+                self.log_message("item: "+repr(item))
+                filename = _decode_str_if_py2(self.basename(item.filename), "utf-8")
                 if filename == "":
                     continue
 
-                localpath = os.path.join(directory, filename).encode('utf-8')
+                localpath = _encode_str_if_py2(os.path.join(directory, filename), "utf-8")
                 root, ext = os.path.splitext(localpath)
                 i = 1
 
@@ -748,9 +764,8 @@ class HTTPUploadHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                 else:
                     # no temporary file, self.file is a StringIO()
                     # see cgi.FieldStorage.read_lines()
-                    fout = file(localpath, 'wb')
-                    shutil.copyfileobj(item.file, fout)
-                    fout.close()
+                    with open(localpath, "wb") as fout:
+                        shutil.copyfileobj(item.file, fout)
 
                 if file_mode is not None:
                     os.chmod(localpath, file_mode)
@@ -766,16 +781,17 @@ class HTTPUploadHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             else:
                 self.send_html(self.html("success"))
 
-        except Exception, e:
+        except Exception as e:
             self.log_message(repr(e))
             self.send_html(self.html("error"))
+            raise e # TODO: DEV
 
 
     def send_html(self, htmlstr):
         self.send_response(200)
         self.send_header('Content-type','text/html; charset=utf-8')
         self.end_headers()
-        self.wfile.write(htmlstr.encode('utf-8'))
+        self.wfile.write(htmlstr.encode("utf-8"))
 
     def send_file(self, localpath):
         f = open(localpath, 'rb')
@@ -811,8 +827,8 @@ class HTTPUploadHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
     def handle(self):
         try:
-            BaseHTTPServer.BaseHTTPRequestHandler.handle(self)
-        except socket.error, e:
+            httpserver.BaseHTTPRequestHandler.handle(self)
+        except socket.error as e:
             self.log_message(str(e))
             raise Abort()
 
@@ -820,14 +836,14 @@ class HTTPUploadHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 class Abort(Exception): pass
 
 
-class ThreadedHTTPServer(SocketServer.ThreadingMixIn,
-                         BaseHTTPServer.HTTPServer):
+class ThreadedHTTPServer(socketserver.ThreadingMixIn,
+                         httpserver.HTTPServer):
 
     def handle_error(self, request, client_address):
-        # Override SocketServer.handle_error
+        # Override socketserver.handle_error
         exctype = sys.exc_info()[0]
         if not exctype is Abort:
-            BaseHTTPServer.HTTPServer.handle_error(self,request,client_address)
+            httpserver.HTTPServer.handle_error(self,request,client_address)
 
 
 # -- Options
@@ -873,19 +889,19 @@ def save_options():
     if port:
         opt.append('%d' % port)
     f = open(configfile(), 'w')
-    f.write('\n'.join(opt).encode('utf8'))
+    f.write(_encode_str_if_py2('\n'.join(opt),"utf-8"))
     f.close()
 
 
 def load_options():
     try:
         f = open(configfile())
-        cmd = [line.strip().decode('utf8').replace('\\n', '\n')
+        cmd = [ _encode_str_if_py2(line.strip(), 'utf-8').replace('\\n', '\n')
                for line in f.readlines()]
         parse_args(cmd)
         f.close()
         return True
-    except IOError, e:
+    except IOError as e:
         return False
 
 
@@ -897,83 +913,82 @@ def parse_args(cmd=None):
     global picture, message, port, directory, must_save_options, publish_files
     global auth, certfile, file_mode
 
-    if cmd == None:
-        cmd = sys.argv[1:]
-        lang, encoding = locale.getdefaultlocale()
-        if encoding != None:
-            cmd = [a.decode(encoding) for a in cmd]
+    parser = argparse.ArgumentParser(
+        description="Usage: droopy [options] [PORT]",
+        epilog='Example:\n    droopy -m "Hi, this is Bob. You can send me a file." -p avatar.png'
+    )
+    parser.add_argument("port", type=int, default=8000,
+        help='port number to host droopy upon')
+    parser.add_argument('-d', '--directory', type=str, default='',
+        help='set the directory to upload files to')
+    parser.add_argument('-m', '--message', type=str, default='',
+        help='set the message')
+    parser.add_argument('-p', '--picture', type=str, default='',
+        help='set the picture')
+    parser.add_argument('--dl', action='store_true', default=False,
+        help='provide download links')
+    parser.add_argument('-a', '--auth', type=str, default='',
+        help='set the authentication credentials, in form USER:PASS')
+    parser.add_argument('--ssl', type=str, default='',
+        help='set up https using the certificate file')
+    parser.add_argument('--chmod', type=str, default='',
+        help='set the file permissions (octal value)')
+    parser.add_argument('--save-config', action='store_true', default=False,
+        help='save options in a configuration file')
+    parser.add_argument('--delete-config', action='store_true', default=False,
+        help='delete the configuration file and exit')
+    args = parser.parse_args(cmd)
 
-    opts, args = None, None
-    try:
-        opts, args = getopt.gnu_getopt(cmd, "p:m:d:a:h",
-                                       ["picture=","message=", "directory=",
-                                        "auth=", "ssl=", "chmod=", "help",
-                                        "save-config", "delete-config", "dl"])
-    except Exception, e:
-        print e
-        sys.exit(1)
+    # TODO: This globals-based code needs to die
+    if args.picture:
+        if os.path.exists(args.picture):
+            picture = fullpath(args.picture)
+        else:
+            print("Picture not found: '%s'" % args.picture)
 
-    for o, a in opts:
-        if o in ["-p", "--picture"]:
-            if os.path.exists(a):
-                picture = fullpath(a)
-            else:
-                print "Picture not found: '%s'" % a
+    if args.message:
+        message = args.message
 
-        elif o in ["-m", "--message"]:
-            message = a
+    if args.directory:
+        directory = fullpath(args.directory)
 
-        elif o in ['-d', '--directory']:
-            directory = fullpath(a)
+    if args.save_config:
+        must_save_options = True
 
-        elif o in ['--save-config']:
-            must_save_options = True
+    if args.delete_config:
+        try:
+            filename = configfile()
+            os.remove(filename)
+            print('Deleted ' + filename)
+        except Exception as e:
+            print(e)
+        sys.exit(0)
 
-        elif o in ['--delete-config']:
-            try:
-                filename = configfile()
-                os.remove(filename)
-                print 'Deleted ' + filename
-            except Exception, e:
-                print e
-            sys.exit(0)
+    if args.dl:
+        publish_files = True
 
-        elif o in ['--dl']:
-            publish_files = True
+    if args.auth:
+        if ':' not in args.auth:
+            print("Error: authentication credentials must be "
+                  "specified as USER:PASSWORD")
+            sys.exit(1)
+        auth = args.auth
 
-        elif o in ['-a', '--auth']:
-            if ':' not in a:
-                print "Error: authentication credentials must be " \
-                      "specified as USER:PASSWORD"
-                sys.exit(1)
-            auth = a
+    if args.ssl:
+        if not os.path.isfile(args.ssl):
+            print("PEM file not found: '%s'" % args.ssl)
+            sys.exit(1)
+        certfile = fullpath(args.ssl)
 
-        elif o in ['--ssl']:
-            if not os.path.isfile(a):
-                print "PEM file not found: '%s'" % a
-                sys.exit(1)
-            certfile = fullpath(a)
+    if args.chmod:
+        try:
+            file_mode = int(args.chmod, 8)
+        except ValueError:
+            print("Invalid octal value passed to chmod option: '%s'" % a)
+            sys.exit(1)
 
-        elif o in ['--chmod']:
-            try:
-                file_mode = int(a, 8)
-            except ValueError:
-                print "Invalid octal value passed to chmod option: '%s'" % a
-                sys.exit(1)
-
-
-        elif o in ['-h', '--help']:
-            print USAGE
-            sys.exit(0)
-
-    # port number
-    try:
-        if args[0:]:
-            port = int(args[0])
-    except ValueError:
-        print args[0], "is not a valid port number"
-        sys.exit(1)
-
+    port = args.port
+    return vars(args)
 
 # --
 
@@ -986,7 +1001,7 @@ def run():
         try:
             import ssl
         except:
-            print "Error: Could not import module 'ssl', exiting."
+            print("Error: Could not import module 'ssl', exiting.")
             sys.exit(2)
         httpd.socket = ssl.wrap_socket(httpd.socket, certfile=certfile,
                                        server_side=True)
@@ -994,27 +1009,27 @@ def run():
 
 
 if __name__ == '__main__':
-    print LOGO
+    print(LOGO)
 
     config_found = load_options()
     parse_args()
 
     if config_found:
-        print 'Configuration found in %s' % configfile()
+        print('Configuration found in %s' % configfile())
     else:
-        print "No configuration file found."
+        print("No configuration file found.")
 
     if must_save_options:
         save_options()
-        print "Options saved in %s" % configfile()
+        print("Options saved in %s" % configfile())
 
     proto = 'https' if certfile else 'http'
-    print "Files will be uploaded to %s" % directory
-    print
-    print ("HTTP server running... Check it out at %s://localhost:%d"
+    print("Files will be uploaded to %s" % directory)
+    print()
+    print("HTTP server running... Check it out at %s://localhost:%d"
            % (proto, port))
     try:
         run()
     except KeyboardInterrupt:
-        print '^C received, shutting down server'
+        print('^C received, shutting down server')
         # some threads may run until they terminate
