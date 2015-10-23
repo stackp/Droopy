@@ -720,31 +720,18 @@ class HTTPUploadHandler(httpserver.BaseHTTPRequestHandler):
             # -- Set up environment for cgi.FieldStorage
             env = {}
             env['REQUEST_METHOD'] = self.command
-            self.log_message("Got command: " + repr(self.command))
-            #if self.headers.typeheader is None:
-            #    env['CONTENT_TYPE'] = self.headers.type
-            #else:
-            #    env['CONTENT_TYPE'] = self.headers.typeheader
-            headers = dict(self.headers)
-            env['CONTENT_TYPE'] = headers.get('typeheader',
-                                    headers.get('type',
-                                        headers.get('Content-Type',
-                                            'application/octet-stream')))
 
-            self.log_message("Content type: " + env['CONTENT_TYPE'])
             # -- Save file (numbered to avoid overwriting, ex: foo-3.png)
-            form = DroopyFieldStorage(fp = self.rfile, environ = env);
-            self.log_message("Got form data..")
+            # Realised CGI handles headers for you, so no need to pollute env
+            # with content-type wrangling anymore.
+            form = DroopyFieldStorage(fp = self.rfile, headers = self.headers, environ = env);
             file_items = form[self.form_field]
-            self.log_message("Got file_items: " + repr(file_items))
 
             #-- Handle multiple file upload
             if not isinstance(file_items, list):
                 file_items = [file_items]
 
-            self.log_message("Iterating file_items")
             for item in file_items:
-                self.log_message("item: "+repr(item))
                 filename = _decode_str_if_py2(self.basename(item.filename), "utf-8")
                 if filename == "":
                     continue
