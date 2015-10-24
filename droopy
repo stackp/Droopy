@@ -105,6 +105,22 @@ def basename(path):
         path = mod.basename(path)
     return path
 
+def check_auth(method):
+    "Wraps methods on the request handler to require simple auth checks."
+    # TODO: Functools decorator wrapper?
+    def decorated(self, *args):
+        # TODO: Kill global
+        if auth and self.headers.getheader('Authorization') != \
+                                        'Basic ' + base64.b64encode(auth):
+            self.send_response(401)
+            self.send_header('WWW-Authenticate', 'Basic realm=\"Droopy\"')
+            self.send_header('Content-type', 'text/html')
+            self.end_headers()
+        else:
+            method(self, *args)
+    return decorated
+
+
 LOGO = '''\
  _____
 |     \.----.-----.-----.-----.--.--.
@@ -697,21 +713,6 @@ class HTTPUploadHandler(httpserver.BaseHTTPRequestHandler):
 
         return templates[page] % dico
 
-    # Runs at class instantiation time and is called at class scope, so is a
-    # `de facto` static/classmethod, but this gives me the prickles. Move out of
-    # class?
-    def check_auth(method):
-        def decorated(self, *args):
-            if auth and self.headers.getheader('Authorization') != \
-                                            'Basic ' + base64.b64encode(auth):
-                self.send_response(401)
-                self.send_header('WWW-Authenticate', 'Basic realm=\"Droopy\"')
-                self.send_header('Content-type', 'text/html')
-                self.end_headers()
-            else:
-                method(self, *args)
-        return decorated
-
     @check_auth
     def do_GET(self):
         "Standard method to override in this Server object."
@@ -730,24 +731,18 @@ class HTTPUploadHandler(httpserver.BaseHTTPRequestHandler):
         else:
             self.send_html(self.html("main"))
 
-
     @check_auth
     def do_POST(self):
         "Standard method to override in this Server object."
-        # Do some browsers /really/ use multipart ? maybe Opera ?
         try:
             self.log_message("Started file transfer")
-
-            # -- Set up environment for cgi.FieldStorage
-            env = {}
-            env['REQUEST_METHOD'] = self.command
 
             # -- Save file (numbered to avoid overwriting, ex: foo-3.png)
             # Realised CGI handles headers for you, so no need to pollute env
             # with content-type wrangling anymore.
             form = DroopyFieldStorage(fp=self.rfile,
                                       headers=self.headers,
-                                      environ=env)
+                                      environ={'REQUEST_METHOD': self.command})
             file_items = form[self.form_field]
 
             #-- Handle multiple file upload
@@ -794,8 +789,7 @@ class HTTPUploadHandler(httpserver.BaseHTTPRequestHandler):
         except Exception as e:
             self.log_message(repr(e))
             self.send_html(self.html("error"))
-            raise e # TODO: DEV
-
+            #raise e # Dev only
 
     def send_html(self, htmlstr):
         "Simply returns htmlstr with the appropriate content-type/status."
@@ -806,13 +800,13 @@ class HTTPUploadHandler(httpserver.BaseHTTPRequestHandler):
 
     def send_file(self, localpath):
         "Does what it says on the tin! Includes correct content-type/length."
-        f = open(localpath, 'rb')
         self.send_response(200)
         self.send_header('Content-type',
                          mimetypes.guess_type(localpath)[0])
-        self.send_header('Content-length', os.fstat(f.fileno())[6])
-        self.end_headers()
-        shutil.copyfileobj(f, self.wfile)
+        with open(localpath, 'rb') as f:
+            self.send_header('Content-length', os.fstat(f.fileno())[6])
+            self.end_headers()
+            shutil.copyfileobj(f, self.wfile)
 
     def published_files(self):
         """Returns the list of files that should appear as download links.
