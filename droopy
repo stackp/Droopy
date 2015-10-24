@@ -625,15 +625,8 @@ class HTTPUploadHandler(httpserver.BaseHTTPRequestHandler):
     form_field = 'upfile'
     divpicture = '<div class="box"><img src="/__droopy/picture"/></div>'
 
-
-    def html(self, page):
-        """
-        page can be "main", "success", or "error"
-        returns an html page (in the appropriate language) as a string
-        """
-
-        # -- Parse accept-language header
-        #if not self.headers.has_key("accept-language"):
+    def parse_accepted_languages(self):
+        "Parse accept-language header"
         # TODO: Make this legible
         if "accept-language" in self.headers:
             accepted = self.headers["accept-language"]
@@ -645,19 +638,32 @@ class HTTPUploadHandler(httpserver.BaseHTTPRequestHandler):
             accepted.sort()
             accepted.reverse()
             accepted = [x[1] for x in accepted]
-        # now a is an ordered list of preferred languages
+            # now accepted is an ordered list of preferred languages
+            return accepted
         else:
-            accepted = []
+            return []
 
+    def choose_language(self):
+        "Choose localisation based on accept-language header (default 'en')"
+        accepted = parse_accepted_languages()
         # -- Choose the appropriate translation dictionary (default is english)
         lang = "en"
         for alang in accepted:
-            if alang in translations: #.has_key(l):
+            if alang in translations:
                 lang = alang
                 break
-        dico = copy.copy(translations[lang])
+        # TODO: Why does this copy?
+        return copy.copy(translations[lang])
+
+    def html(self, page):
+        """
+        page can be "main", "success", or "error"
+        returns an html page (in the appropriate language) as a string
+        """
+        dico = self.choose_language()
 
         # -- Set message and picture
+        # TODO: Kill global reference here.
         if message:
             dico["message"] = ('<div id="message">%s</div>' %
                                message)
@@ -670,6 +676,7 @@ class HTTPUploadHandler(httpserver.BaseHTTPRequestHandler):
             dico["divpicture"] = ""
 
         # -- Possibly provide download links
+        # TODO: Sanity-check for injections
         links = ""
         names = self.published_files()
         if names:
@@ -684,14 +691,15 @@ class HTTPUploadHandler(httpserver.BaseHTTPRequestHandler):
         if self.client_address[0] == "127.0.0.1":
             dico["port"] = self.server.server_port
             dico["ssl"] = int(certfile is not None)
-            dico["linkurl"] =  linkurltmpl % dico
+            dico["linkurl"] = linkurltmpl % dico
         else:
             dico["linkurl"] = ""
 
         return templates[page] % dico
 
-    # TODO: WTF is going on here, is this supposed to be a staticmethod?
-    # Or, is this some dark magic of the parent object?
+    # Runs at class instantiation time and is called at class scope, so is a
+    # `de facto` static/classmethod, but this gives me the prickles. Move out of
+    # class?
     def check_auth(method):
         def decorated(self, *args):
             if auth and self.headers.getheader('Authorization') != \
@@ -811,6 +819,7 @@ class HTTPUploadHandler(httpserver.BaseHTTPRequestHandler):
 
         The returned filenames are unicode strings.
         """
+        # TODO: Kill global
         if publish_files:
             # os.listdir() returns a list of unicode strings when the
             # directory is passed as an unicode string itself.
