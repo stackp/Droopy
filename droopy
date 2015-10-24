@@ -844,6 +844,43 @@ class ThreadedHTTPServer(socketserver.ThreadingMixIn,
             httpserver.HTTPServer.handle_error(self, request, client_address)
 
 
+# TODO: Specify TLS1.2 only?
+def run(domain='',
+        port=80,
+        timeout=3*60,
+        certfile=None,
+        permitted_ciphers='ECDH+AESGCM:ECDH+AES256:ECDH+AES128:ECDH+3DES:RSA+AESGCM:RSA+AES:RSA+3DES:!aNULL:!MD5:!DSS'):
+    """
+    Run the webserver.
+
+    Domain, port and timeout are self-explanatory.
+
+    certfile should be the path of a PEM TLS certificate.
+
+    permitted_ciphers, if a TLS cert is provided, is an OpenSSL cipher string.
+    The default here is taken from:
+      https://hynek.me/articles/hardening-your-web-servers-ssl-ciphers/
+    ..with DH-only ciphers removed because of precomputation hazard.
+    """
+    socket.setdefaulttimeout(3*60)
+    server_address = ('', port)
+    httpd = ThreadedHTTPServer(server_address, HTTPUploadHandler)
+    if certfile:
+        try:
+            import ssl
+        except:
+            print("Error: Could not import module 'ssl', exiting.")
+            sys.exit(2)
+        httpd.socket = ssl.wrap_socket(
+                          httpd.socket,
+                          certfile=certfile,
+                          ciphers=permitted_ciphers,
+                          server_side=True
+                          )
+    httpd.serve_forever()
+
+
+
 # -- Options
 
 def configfile():
@@ -980,41 +1017,6 @@ def parse_args(cmd=None):
     return vars(args)
 
 # --
-
-# TODO: Specify TLS1.2 only?
-def run(domain='',
-        port=80,
-        timeout=3*60,
-        certfile=None,
-        permitted_ciphers='ECDH+AESGCM:ECDH+AES256:ECDH+AES128:ECDH+3DES:RSA+AESGCM:RSA+AES:RSA+3DES:!aNULL:!MD5:!DSS'):
-    """
-    Run the webserver.
-
-    Domain, port and timeout are self-explanatory.
-
-    certfile should be the path of a PEM TLS certificate.
-
-    permitted_ciphers, if a TLS cert is provided, is an OpenSSL cipher string.
-    The default here is taken from:
-      https://hynek.me/articles/hardening-your-web-servers-ssl-ciphers/
-    ..with DH-only ciphers removed because of precomputation hazard.
-    """
-    socket.setdefaulttimeout(3*60)
-    server_address = ('', port)
-    httpd = ThreadedHTTPServer(server_address, HTTPUploadHandler)
-    if certfile:
-        try:
-            import ssl
-        except:
-            print("Error: Could not import module 'ssl', exiting.")
-            sys.exit(2)
-        httpd.socket = ssl.wrap_socket(
-                          httpd.socket,
-                          certfile=certfile,
-                          ciphers=permitted_ciphers,
-                          server_side=True
-                          )
-    httpd.serve_forever()
 
 
 if __name__ == '__main__':
