@@ -121,14 +121,6 @@ def check_auth(method):
     return decorated
 
 
-LOGO = '''\
- _____
-|     \.----.-----.-----.-----.--.--.
-|  --  |   _|  _  |  _  |  _  |  |  |
-|_____/|__| |_____|_____|   __|___  |
-                        |__|  |_____|
-'''
-
 picture = None
 message = ""
 port = 8000
@@ -809,7 +801,8 @@ class HTTPUploadHandler(httpserver.BaseHTTPRequestHandler):
             shutil.copyfileobj(f, self.wfile)
 
     def published_files(self):
-        """Returns the list of files that should appear as download links.
+        """
+        Returns the list of files that should appear as download links.
 
         The returned filenames are unicode strings.
         """
@@ -825,8 +818,11 @@ class HTTPUploadHandler(httpserver.BaseHTTPRequestHandler):
             names = []
         return names
 
+    # TODO: Appears to allow socket.error to propagate by wrapping in
+    # Abort class and handling specially in ThreadedHTTPServer. Is there a
+    # cleaner way? Seems you could just check for socket.error and be done?
     def handle(self):
-        "Lets parent object handle, but catches exceptions to log first."
+        "Lets parent object handle, but redirects socket exceptions as 'Abort's."
         try:
             httpserver.BaseHTTPRequestHandler.handle(self)
         except socket.error as e:
@@ -835,7 +831,7 @@ class HTTPUploadHandler(httpserver.BaseHTTPRequestHandler):
 
 
 class Abort(Exception):
-    "Used by handle to rethrow exceptions but never caught anywhere-Redundant?"
+    "Used by handle to rethrow exceptions in ThreadedHTTPServer."
 
 
 class ThreadedHTTPServer(socketserver.ThreadingMixIn,
@@ -876,9 +872,9 @@ def save_options():
             O.write(opt)
 
 
-def load_options():
+def load_options(cfg_loc):
     try:
-        with open(configfile()) as f:
+        with open(cfg_loc) as f:
             cmd = []
             for line in f:
                 line = line.strip()
@@ -891,13 +887,14 @@ def load_options():
                         cmd.append(line)
                 else:
                     cmd.append(line)
-        parse_args(cmd)
-        return True
+        return parse_args(cmd)
     except IOError:
-        return False
+        return {}
+
 
 def parse_args(cmd=None):
-    """Parse command-line arguments.
+    """
+    Parse command-line arguments.
 
     Parse sys.argv[1:] if no argument is passed.
     """
@@ -928,7 +925,7 @@ def parse_args(cmd=None):
                         help='delete the configuration file and exit')
     args = parser.parse_args(cmd)
 
-    # TODO: This globals-based code needs to die
+    # TODO: Kill Globals
     global picture, message, port, directory, must_save_options, publish_files
     global auth, certfile, file_mode
 
@@ -984,8 +981,24 @@ def parse_args(cmd=None):
 
 # --
 
-def run(domain='', port=80, timeout=3*60, certfile=None):
-    """Run the webserver."""
+# TODO: Specify TLS1.2 only?
+def run(domain='',
+        port=80,
+        timeout=3*60,
+        certfile=None,
+        permitted_ciphers='ECDH+AESGCM:ECDH+AES256:ECDH+AES128:ECDH+3DES:RSA+AESGCM:RSA+AES:RSA+3DES:!aNULL:!MD5:!DSS'):
+    """
+    Run the webserver.
+
+    Domain, port and timeout are self-explanatory.
+
+    certfile should be the path of a PEM TLS certificate.
+
+    permitted_ciphers, if a TLS cert is provided, is an OpenSSL cipher string.
+    The default here is taken from:
+      https://hynek.me/articles/hardening-your-web-servers-ssl-ciphers/
+    ..with DH-only ciphers removed because of precomputation hazard.
+    """
     socket.setdefaulttimeout(3*60)
     server_address = ('', port)
     httpd = ThreadedHTTPServer(server_address, HTTPUploadHandler)
@@ -998,32 +1011,40 @@ def run(domain='', port=80, timeout=3*60, certfile=None):
         httpd.socket = ssl.wrap_socket(
                           httpd.socket,
                           certfile=certfile,
-                          # Taken from: https://hynek.me/articles/hardening-your-web-servers-ssl-ciphers/
-                          # with DH-only ciphers removed because of precumputation hazard.
-                          ciphers='ECDH+AESGCM:ECDH+AES256:ECDH+AES128:ECDH+3DES:RSA+AESGCM:RSA+AES:RSA+3DES:!aNULL:!MD5:!DSS',
+                          ciphers=permitted_ciphers,
                           server_side=True
                           )
     httpd.serve_forever()
 
 
 if __name__ == '__main__':
-    print(LOGO)
+    print('''\
+     _____
+    |     \.----.-----.-----.-----.--.--.
+    |  --  |   _|  _  |  _  |  _  |  |  |
+    |_____/|__| |_____|_____|   __|___  |
+                            |__|  |_____|
+    ''')
 
-    config_found = load_options()
-    args = parse_args()
-
-    if config_found:
+    # TODO: For future-proofness, parse args first, then parse
+    # config, then apply args atop config to get overridden vars.
+    # This will allow specifying a custom config *and* overriding this config.
+    args = {}
+    args.update(load_options(configfile()))
+    if args:
         print('Configuration found in %s' % configfile())
     else:
         print("No configuration file found.")
-
+    args.update(parse_args())
     if args['save_config']:
+        # TODO: Need a compatible and robust way to save/load
+        # options that retains backward compatibility but allows
+        # custom configs in future.
         save_options()
         print("Options saved in %s" % configfile())
 
     proto = 'https' if args['ssl'] else 'http'
-    print("Files will be uploaded to %s" % args['directory'])
-    print()
+    print("Files will be uploaded to %s\n" % args['directory'])
     print("HTTP server starting... Check it out at %s://localhost:%d"
            % (proto, args['port']))
     try:
