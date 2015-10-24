@@ -58,7 +58,7 @@
 #   20080408 * First release.
 from __future__ import print_function
 import sys
-if sys.version_info >= (3,0):
+if sys.version_info >= (3, 0):
     from http import server as httpserver
     import socketserver
     from urllib import parse as urllibparse
@@ -73,14 +73,12 @@ import os
 import posixpath
 import macpath
 import ntpath
-import getopt
 import argparse
 import mimetypes
 import copy
 import shutil
 import tempfile
 import socket
-import locale
 import base64
 
 
@@ -97,6 +95,15 @@ def _encode_str_if_py2(inputstr, encoding):
         return inputstr.encode(encoding)
     else:
         return inputstr
+
+def fullpath(path):
+    return os.path.abspath(os.path.expanduser(path))
+
+def basename(path):
+    "Extract the file base name (some browsers send the full file path)."
+    for mod in posixpath, macpath, ntpath:
+        path = mod.basename(path)
+    return path
 
 LOGO = '''\
  _____
@@ -627,24 +634,26 @@ class HTTPUploadHandler(httpserver.BaseHTTPRequestHandler):
 
         # -- Parse accept-language header
         #if not self.headers.has_key("accept-language"):
+        # TODO: Make this legible
         if "accept-language" in self.headers:
-            a = self.headers["accept-language"]
-            a = a.split(',')
-            a = [e.split(';q=') for e in  a]
-            a = [(lambda x: len(x)==1 and (1, x[0]) or
-                                           (float(x[1]), x[0])) (e) for e in a]
-            a.sort()
-            a.reverse()
-            a = [x[1] for x in a]
+            accepted = self.headers["accept-language"]
+            accepted = accepted.split(',')
+            accepted = [lang.split(';q=') for lang in accepted]
+            accepted = [(lambda x: len(x)==1 and (1, x[0]) or
+                                           (float(x[1]), x[0])) (lang)
+                                           for lang in accepted]
+            accepted.sort()
+            accepted.reverse()
+            accepted = [x[1] for x in accepted]
         # now a is an ordered list of preferred languages
         else:
-            a = []
+            accepted = []
 
         # -- Choose the appropriate translation dictionary (default is english)
         lang = "en"
-        for l in a:
-            if l in translations: #.has_key(l):
-                lang = l
+        for alang in accepted:
+            if alang in translations: #.has_key(l):
+                lang = alang
                 break
         dico = copy.copy(translations[lang])
 
@@ -681,6 +690,8 @@ class HTTPUploadHandler(httpserver.BaseHTTPRequestHandler):
 
         return templates[page] % dico
 
+    # TODO: WTF is going on here, is this supposed to be a staticmethod?
+    # Or, is this some dark magic of the parent object?
     def check_auth(method):
         def decorated(self, *args):
             if auth and self.headers.getheader('Authorization') != \
@@ -695,6 +706,7 @@ class HTTPUploadHandler(httpserver.BaseHTTPRequestHandler):
 
     @check_auth
     def do_GET(self):
+        "Standard method to override in this Server object."
         name = self.path.lstrip('/')
         name = urllibparse.unquote(name)
         name = _decode_str_if_py2(name, 'utf-8')
@@ -713,6 +725,7 @@ class HTTPUploadHandler(httpserver.BaseHTTPRequestHandler):
 
     @check_auth
     def do_POST(self):
+        "Standard method to override in this Server object."
         # Do some browsers /really/ use multipart ? maybe Opera ?
         try:
             self.log_message("Started file transfer")
@@ -724,7 +737,9 @@ class HTTPUploadHandler(httpserver.BaseHTTPRequestHandler):
             # -- Save file (numbered to avoid overwriting, ex: foo-3.png)
             # Realised CGI handles headers for you, so no need to pollute env
             # with content-type wrangling anymore.
-            form = DroopyFieldStorage(fp = self.rfile, headers = self.headers, environ = env);
+            form = DroopyFieldStorage(fp=self.rfile,
+                                      headers=self.headers,
+                                      environ=env)
             file_items = form[self.form_field]
 
             #-- Handle multiple file upload
@@ -732,7 +747,7 @@ class HTTPUploadHandler(httpserver.BaseHTTPRequestHandler):
                 file_items = [file_items]
 
             for item in file_items:
-                filename = _decode_str_if_py2(self.basename(item.filename), "utf-8")
+                filename = _decode_str_if_py2(basename(item.filename), "utf-8")
                 if filename == "":
                     continue
 
@@ -740,8 +755,8 @@ class HTTPUploadHandler(httpserver.BaseHTTPRequestHandler):
                 root, ext = os.path.splitext(localpath)
                 i = 1
 
-                # race condition, but hey...
-                while (os.path.exists(localpath)):
+                # TODO: race condition, but hey...
+                while os.path.exists(localpath):
                     localpath = "%s-%d%s" % (root, i, ext)
                     i = i + 1
                 if hasattr(item, 'tmpfile'):
@@ -775,12 +790,14 @@ class HTTPUploadHandler(httpserver.BaseHTTPRequestHandler):
 
 
     def send_html(self, htmlstr):
+        "Simply returns htmlstr with the appropriate content-type/status."
         self.send_response(200)
         self.send_header('Content-type','text/html; charset=utf-8')
         self.end_headers()
         self.wfile.write(htmlstr.encode("utf-8"))
 
     def send_file(self, localpath):
+        "Does what it says on the tin! Includes correct content-type/length."
         f = open(localpath, 'rb')
         self.send_response(200)
         self.send_header('Content-type',
@@ -788,13 +805,6 @@ class HTTPUploadHandler(httpserver.BaseHTTPRequestHandler):
         self.send_header('Content-length', os.fstat(f.fileno())[6])
         self.end_headers()
         shutil.copyfileobj(f, self.wfile)
-
-    def basename(self, path):
-        """Extract the file base name (some browsers send the full file path).
-        """
-        for mod in posixpath, macpath, ntpath:
-            path = mod.basename(path)
-        return path
 
     def published_files(self):
         """Returns the list of files that should appear as download links.
@@ -813,14 +823,16 @@ class HTTPUploadHandler(httpserver.BaseHTTPRequestHandler):
         return names
 
     def handle(self):
+        "Lets parent object handle, but catches exceptions to log first."
         try:
             httpserver.BaseHTTPRequestHandler.handle(self)
         except socket.error as e:
             self.log_message(str(e))
-            raise Abort()
+            raise Abort(str(e))
 
 
-class Abort(Exception): pass
+class Abort(Exception):
+    "Used by handle to rethrow exceptions but never caught anywhere-Redundant?"
 
 
 class ThreadedHTTPServer(socketserver.ThreadingMixIn,
@@ -830,103 +842,93 @@ class ThreadedHTTPServer(socketserver.ThreadingMixIn,
         # Override socketserver.handle_error
         exctype = sys.exc_info()[0]
         if not exctype is Abort:
-            httpserver.HTTPServer.handle_error(self,request,client_address)
+            httpserver.HTTPServer.handle_error(self, request, client_address)
 
 
 # -- Options
 
-def fullpath(path):
-    return os.path.abspath(os.path.expanduser(path))
-
 def configfile():
+    "Returns appropriate absolute path to configfile, per-platform."
     appname = 'droopy'
     # os.name is 'posix', 'nt', 'os2', 'mac', 'ce' or 'riscos'
     if os.name == 'posix':
-        filename = "%s/.%s" % (os.environ["HOME"], appname)
-
+        filename = os.path.join(os.environ['HOME'], appname)
     elif os.name == 'mac':
-        filename = ("%s/Library/Application Support/%s" %
-                    (os.environ["HOME"], appname))
-
+        filename = os.path.join(os.environ['HOME'], 'Library', 'Application Support', appname)
     elif os.name == 'nt':
-        filename = ("%s\%s" % (os.environ["APPDATA"], appname))
-
+        filename = os.path.join(os.environ['APPDATA'], appname)
     else:
         filename = None
-
     return filename
 
 
 def save_options():
-    opt = []
-    if message:
-        opt.append('--message=%s' % message.replace('\n', '\\n'))
-    if picture:
-        opt.append('--picture=%s' % picture)
-    if directory:
-        opt.append('--directory=%s' % directory)
-    if auth:
-        opt.append('--auth=%s' % auth)
-    if certfile:
-        opt.append('--ssl=%s' % certfile)
-    if file_mode:
-        opt.append('--chmod=%s' % file_mode)
-    if publish_files:
-        opt.append('--dl')
-    if port:
-        opt.append('%d' % port)
-    f = open(configfile(), 'w')
-    f.write(_encode_str_if_py2('\n'.join(opt),"utf-8"))
-    f.close()
+    "Dumps sys.argv with one argument per line."
+    with open(configfile(), "w") as O:
+        for opt in sys.argv[1:]:
+            if opt.startswith("-"):
+                O.write("\n")
+            else:
+                O.write(" ")
+            O.write(opt)
 
 
 def load_options():
     try:
-        f = open(configfile())
-        cmd = [ _encode_str_if_py2(line.strip(), 'utf-8').replace('\\n', '\n')
-               for line in f.readlines()]
+        with open(configfile()) as f:
+            cmd = []
+            for line in f:
+                line = line.strip()
+                if not line: continue
+                if line.startswith("-"):
+                    if " " in line:
+                        opt, rest = line.split(" ", 1)
+                        cmd.extend((opt, rest))
+                    else:
+                        cmd.append(line)
+                else:
+                    cmd.append(line)
         parse_args(cmd)
-        f.close()
         return True
-    except IOError as e:
+    except IOError:
         return False
-
 
 def parse_args(cmd=None):
     """Parse command-line arguments.
 
     Parse sys.argv[1:] if no argument is passed.
     """
-    global picture, message, port, directory, must_save_options, publish_files
-    global auth, certfile, file_mode
 
     parser = argparse.ArgumentParser(
         description="Usage: droopy [options] [PORT]",
         epilog='Example:\n    droopy -m "Hi, this is Bob. You can send me a file." -p avatar.png'
     )
     parser.add_argument("port", type=int, nargs='?', default=8000,
-        help='port number to host droopy upon')
+                        help='port number to host droopy upon')
     parser.add_argument('-d', '--directory', type=str, default='',
-        help='set the directory to upload files to')
+                        help='set the directory to upload files to')
     parser.add_argument('-m', '--message', type=str, default='',
-        help='set the message')
+                        help='set the message')
     parser.add_argument('-p', '--picture', type=str, default='',
-        help='set the picture')
+                        help='set the picture')
     parser.add_argument('--dl', action='store_true', default=False,
-        help='provide download links')
+                        help='provide download links')
     parser.add_argument('-a', '--auth', type=str, default='',
-        help='set the authentication credentials, in form USER:PASS')
+                        help='set the authentication credentials, in form USER:PASS')
     parser.add_argument('--ssl', type=str, default='',
-        help='set up https using the certificate file')
+                        help='set up https using the certificate file')
     parser.add_argument('--chmod', type=str, default='',
-        help='set the file permissions (octal value)')
+                        help='set the file permissions (octal value)')
     parser.add_argument('--save-config', action='store_true', default=False,
-        help='save options in a configuration file')
+                        help='save options in a configuration file')
     parser.add_argument('--delete-config', action='store_true', default=False,
-        help='delete the configuration file and exit')
+                        help='delete the configuration file and exit')
     args = parser.parse_args(cmd)
 
     # TODO: This globals-based code needs to die
+    global picture, message, port, directory, must_save_options, publish_files
+    global auth, certfile, file_mode
+
     if args.picture:
         if os.path.exists(args.picture):
             picture = fullpath(args.picture)
@@ -971,7 +973,7 @@ def parse_args(cmd=None):
         try:
             file_mode = int(args.chmod, 8)
         except ValueError:
-            print("Invalid octal value passed to chmod option: '%s'" % a)
+            print("Invalid octal value passed to chmod option: '%s'" % args.chmod)
             sys.exit(1)
 
     port = args.port
@@ -979,7 +981,7 @@ def parse_args(cmd=None):
 
 # --
 
-def run():
+def run(domain='', port=80, timeout=3*60, certfile=None):
     """Run the webserver."""
     socket.setdefaulttimeout(3*60)
     server_address = ('', port)
@@ -990,8 +992,14 @@ def run():
         except:
             print("Error: Could not import module 'ssl', exiting.")
             sys.exit(2)
-        httpd.socket = ssl.wrap_socket(httpd.socket, certfile=certfile,
-                                       server_side=True)
+        httpd.socket = ssl.wrap_socket(
+                          httpd.socket,
+                          certfile=certfile,
+                          # Taken from: https://hynek.me/articles/hardening-your-web-servers-ssl-ciphers/
+                          # with DH-only ciphers removed because of precumputation hazard.
+                          ciphers='ECDH+AESGCM:ECDH+AES256:ECDH+AES128:ECDH+3DES:RSA+AESGCM:RSA+AES:RSA+3DES:!aNULL:!MD5:!DSS',
+                          server_side=True
+                          )
     httpd.serve_forever()
 
 
@@ -999,24 +1007,24 @@ if __name__ == '__main__':
     print(LOGO)
 
     config_found = load_options()
-    parse_args()
+    args = parse_args()
 
     if config_found:
         print('Configuration found in %s' % configfile())
     else:
         print("No configuration file found.")
 
-    if must_save_options:
+    if args['save_config']:
         save_options()
         print("Options saved in %s" % configfile())
 
-    proto = 'https' if certfile else 'http'
-    print("Files will be uploaded to %s" % directory)
+    proto = 'https' if args['ssl'] else 'http'
+    print("Files will be uploaded to %s" % args['directory'])
     print()
-    print("HTTP server running... Check it out at %s://localhost:%d"
-           % (proto, port))
+    print("HTTP server starting... Check it out at %s://localhost:%d"
+           % (proto, args['port']))
     try:
-        run()
+        run(port=args['port'], certfile=args['ssl'])
     except KeyboardInterrupt:
         print('^C received, shutting down server')
         # some threads may run until they terminate
