@@ -629,6 +629,9 @@ class DroopyFieldStorage(cgi.FieldStorage):
 
 class HTTPUploadHandler(httpserver.BaseHTTPRequestHandler):
 
+    def __init__(self, request, client_address, socketserver_instance):
+        super().__init__(request, client_address, socketserver_instance)
+
     protocol_version = 'HTTP/1.0'
     form_field = 'upfile'
     divpicture = '<div class="box"><img src="/__droopy/picture"/></div>'
@@ -653,7 +656,7 @@ class HTTPUploadHandler(httpserver.BaseHTTPRequestHandler):
 
     def choose_language(self):
         "Choose localisation based on accept-language header (default 'en')"
-        accepted = parse_accepted_languages()
+        accepted = self.parse_accepted_languages()
         # -- Choose the appropriate translation dictionary (default is english)
         lang = "en"
         for alang in accepted:
