@@ -628,10 +628,14 @@ class DroopyFieldStorage(cgi.FieldStorage):
 
 
 class HTTPUploadHandler(httpserver.BaseHTTPRequestHandler):
-
-    def __init__(self, request, client_address, socketserver_instance):
-        super().__init__(request, client_address, socketserver_instance)
-
+    # Making these class attributes is at least a little cleaner
+    # than having them global. Can't cleanly make instance attributes because
+    # of the way this object is instantiated for each thread.
+    templates = {}
+    localisations = {}
+    message = ''
+    picture = ''
+    publish_files = False
     protocol_version = 'HTTP/1.0'
     form_field = 'upfile'
     divpicture = '<div class="box"><img src="/__droopy/picture"/></div>'
@@ -660,11 +664,11 @@ class HTTPUploadHandler(httpserver.BaseHTTPRequestHandler):
         # -- Choose the appropriate translation dictionary (default is english)
         lang = "en"
         for alang in accepted:
-            if alang in translations:
+            if alang in self.localisations:
                 lang = alang
                 break
         # TODO: Why does this copy?
-        return copy.copy(translations[lang])
+        return copy.copy(self.localisations[lang])
 
     def html(self, page):
         """
@@ -674,14 +678,14 @@ class HTTPUploadHandler(httpserver.BaseHTTPRequestHandler):
         dico = self.choose_language()
 
         # -- Set message and picture
-        # TODO: Kill global reference here.
-        if message:
+        if self.message:
             dico["message"] = ('<div id="message">%s</div>' %
-                               message)
+                               self.message)
         else:
             dico["message"] = ""
 
-        if picture != None:
+        # The default appears to be missing/broken, so needs a bit of love anyway.
+        if self.picture != None:
             dico["divpicture"] = self.divpicture
         else:
             dico["divpicture"] = ""
@@ -689,9 +693,8 @@ class HTTPUploadHandler(httpserver.BaseHTTPRequestHandler):
         # -- Possibly provide download links
         # TODO: Sanity-check for injections
         links = ""
-        names = self.published_files()
-        if names:
-            for name in names:
+        if self.publish_files:
+            for name in self.published_files():
                 links += '<a href="/%s">%s</a>' % (
                                 urllibparse.quote(_encode_str_if_py2(name, "utf-8")),
                                 name)
@@ -701,7 +704,7 @@ class HTTPUploadHandler(httpserver.BaseHTTPRequestHandler):
         # -- Add a link to discover the url
         if self.client_address[0] == "127.0.0.1":
             dico["port"] = self.server.server_port
-            dico["ssl"] = int(certfile is not None)
+            dico["ssl"] = int(self.certfile is not None)
             dico["linkurl"] = linkurltmpl % dico
         else:
             dico["linkurl"] = ""
@@ -806,19 +809,17 @@ class HTTPUploadHandler(httpserver.BaseHTTPRequestHandler):
     def published_files(self):
         """
         Returns the list of files that should appear as download links.
-
-        The returned filenames are unicode strings.
         """
-        # TODO: Kill global
-        if publish_files:
-            # os.listdir() returns a list of unicode strings when the
-            # directory is passed as an unicode string itself.
-            names = [name for name in os.listdir(unicode(directory))
-                     if os.path.isfile(os.path.join(directory, name))
-                     and not name.startswith(DroopyFieldStorage.TMPPREFIX)]
-            names.sort(key=lambda s: s.lower())
-        else:
-            names = []
+        names = []
+        # os.listdir() returns a list of unicode strings when the
+        # directory is passed as an unicode string itself.
+        for name in os.listdir(unicode(directory)):
+            if name.startswith(DroopyFieldStorage.TMPPREFIX):
+                continue
+            npath = os.path.join(directory, name)
+            if os.path.isfile(npath):
+                names.append(name)
+        names.sort(key=lambda s: s.lower())
         return names
 
     # TODO: Appears to allow socket.error to propagate by wrapping in
