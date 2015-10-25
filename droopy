@@ -725,8 +725,6 @@ class HTTPUploadHandler(httpserver.BaseHTTPRequestHandler):
             if alang in self.localisations:
                 lang = alang
                 break
-        # TODO: Why does this copy? Thread safety? But not modified, so..?
-        #return copy.copy(self.localisations[lang])
         return self.localisations[lang]
 
     def html(self, page):
@@ -789,8 +787,6 @@ class HTTPUploadHandler(httpserver.BaseHTTPRequestHandler):
         try:
             self.log_message("Started file transfer")
             # -- Save file (numbered to avoid overwriting, ex: foo-3.png)
-            # Realised CGI handles headers for you, so no need to pollute env
-            # with content-type wrangling anymore.
             form = DroopyFieldStorage(fp=self.rfile,
                                       directory=self.directory,
                                       headers=self.headers,
@@ -799,7 +795,6 @@ class HTTPUploadHandler(httpserver.BaseHTTPRequestHandler):
             #-- Handle multiple file upload
             if not isinstance(file_items, list):
                 file_items = [file_items]
-
             for item in file_items:
                 filename = _decode_str_if_py2(basename(item.filename), "utf-8")
                 if filename == "":
@@ -837,8 +832,9 @@ class HTTPUploadHandler(httpserver.BaseHTTPRequestHandler):
             # raise e  # Dev only
 
     def send_resp_headers(self, response_code, headers_dict, end=False):
+        "Just a shortcut for a common operation."
         self.send_response(response_code)
-        for k,v in headers_dict.items():
+        for k, v in headers_dict.items():
             self.send_header(k, v)
         if end:
             self.end_headers()
@@ -852,9 +848,9 @@ class HTTPUploadHandler(httpserver.BaseHTTPRequestHandler):
         "Does what it says on the tin! Includes correct content-type/length."
         with open(localpath, 'rb') as f:
             self.send_resp_headers(200,
-                {'Content-length': os.fstat(f.fileno())[6],
-                 'Content-type': mimetypes.guess_type(localpath)[0]},
-                end=True)
+                                   {'Content-length': os.fstat(f.fileno())[6],
+                                    'Content-type': mimetypes.guess_type(localpath)[0]},
+                                   end=True)
             shutil.copyfileobj(f, self.wfile)
 
     def published_files(self):
@@ -906,10 +902,6 @@ def run(hostname='',
             ':RSA+AESGCM:RSA+AES:RSA+3DES'
             ':!aNULL:!MD5:!DSS')):
     """
-    Run the webserver.
-
-    Domain, port and timeout are self-explanatory.
-
     certfile should be the path of a PEM TLS certificate.
 
     permitted_ciphers, if a TLS cert is provided, is an OpenSSL cipher string.
@@ -918,7 +910,6 @@ def run(hostname='',
     ..with DH-only ciphers removed because of precomputation hazard.
     """
     socket.setdefaulttimeout(timeout)
-    server_address = (hostname, port)
     HTTPUploadHandler.templates = templates
     HTTPUploadHandler.directory = directory
     HTTPUploadHandler.localisations = localisations
@@ -928,7 +919,7 @@ def run(hostname='',
     HTTPUploadHandler.message = message
     HTTPUploadHandler.file_mode = file_mode
     HTTPUploadHandler.auth = auth
-    httpd = ThreadedHTTPServer(server_address, HTTPUploadHandler)
+    httpd = ThreadedHTTPServer((hostname, port), HTTPUploadHandler)
     # TODO: Specify TLS1.2 only?
     if certfile:
         try:
@@ -997,11 +988,7 @@ def load_options(cfg_loc):
 
 
 def parse_args(cmd=None):
-    """
-    Parse command-line arguments.
-
-    Parse sys.argv[1:] if no argument is passed.
-    """
+    "Parse terminal-style args list,  or sys.argv[1:] if no argument is passed."
     parser = argparse.ArgumentParser(
         description="Usage: droopy [options] [PORT]",
         epilog='Example:\n    droopy -m "Hi, this is Bob. You can send me a file." -p avatar.png'
