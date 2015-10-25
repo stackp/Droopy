@@ -132,6 +132,336 @@ def check_auth(method):
     functools.update_wrapper(decorated, method)
     return decorated
 
+
+class Abort(Exception):
+    "Used by handle to rethrow exceptions in ThreadedHTTPServer."
+
+
+class DroopyFieldStorage(cgi.FieldStorage):
+    """
+    The file is created in the destination directory and its name is
+    stored in the tmpfilename attribute.
+
+    Adds a keyword-argument "directory", which is where files are to be
+    stored. Because of CGI magic this might not be thread-safe.
+    """
+
+    TMPPREFIX = 'tmpdroopy'
+
+    # Would love to do a **kwargs job here but cgi has some recursive
+    # magic that passes all possible arguments positionally..
+    def __init__(self, fp=None, headers=None, outerboundary=b'',
+                 environ=os.environ, keep_blank_values=0, strict_parsing=0,
+                 limit=None, encoding='utf-8', errors='replace',
+                 directory='.'):
+        """
+        Adds 'directory' argument to FieldStorage.__init__.
+        Retains compatibility with FieldStorage.__init__ (which involves magic)
+        """
+        self.directory = directory
+        # Not only is cgi.FieldStorage full of magic, it's DIFFERENT
+        # magic in Py2/Py3. Here's a case of the core library making
+        # life difficult, in a class that's *supposed to be subclassed*!
+        if sys.version_info > (3,):
+            cgi.FieldStorage.__init__(self, fp, headers, outerboundary,
+                                      environ, keep_blank_values,
+                                      strict_parsing, limit, encoding, errors)
+        else:
+            cgi.FieldStorage.__init__(self, fp, headers, outerboundary,
+                                      environ, keep_blank_values,
+                                      strict_parsing)
+
+    # Binary is passed in Py2 but not Py3.
+    def make_file(self, binary=None):
+        "Overrides builtin method to store tempfile in the set directory."
+        fd, name = tempfile.mkstemp(dir=self.directory, prefix=self.TMPPREFIX)
+        # Pylint doesn't like these if they're not declared in __init__ first,
+        # but setting tmpfile there leads to odd errors where it's never re-set
+        # to a file descriptor.
+        self.tmpfile = os.fdopen(fd, 'w+b')
+        self.tmpfilename = name
+        return self.tmpfile
+
+
+class HTTPUploadHandler(httpserver.BaseHTTPRequestHandler):
+    "The guts of Droopy-a custom handler that accepts files & serves templates"
+
+    @property
+    def templates(self):
+        "Ensure provided."
+        raise NotImplementedError("Must set class with a templates dict!")
+
+    @property
+    def localisations(self):
+        "Ensure provided."
+        raise NotImplementedError("Must set class with a localisations dict!")
+
+    @property
+    def directory(self):
+        "Ensure provided."
+        raise NotImplementedError("Must provide directory to host.")
+
+    message = ''
+    picture = ''
+    publish_files = False
+    file_mode = None
+    protocol_version = 'HTTP/1.0'
+    form_field = 'upfile'
+    auth = ''
+    certfile = None
+    divpicture = '<div class="box"><img src="/__droopy/picture"/></div>'
+
+    def get_case_insensitive_header(self, hdrname, default):
+        "Python 2 and 3 differ in header capitalisation!"
+        lc_hdrname = hdrname.lower()
+        lc_headers = {h.lower():h for h in self.headers.keys()}
+        if lc_hdrname in lc_headers:
+            return self.headers[lc_headers[lc_hdrname]]
+        else:
+            return default
+
+    @staticmethod
+    def prefcode_tuple(prefcode):
+        "Parse language preferences into (preference, language) tuples."
+        prefbits = prefcode.split(";q=")
+        if len(prefbits) == 1:
+            return (1, prefbits[0])
+        else:
+            return (float(prefbits[1]), prefbits[0])
+
+    def parse_accepted_languages(self):
+        "Parse accept-language header"
+        lhdr = self.get_case_insensitive_header('accept-language', default='')
+        if lhdr:
+            accepted = [self.prefcode_tuple(lang) for lang in lhdr.split(',')]
+            accepted.sort()
+            accepted.reverse()
+            return [x[1] for x in accepted]
+        else:
+            return []
+
+    def choose_language(self):
+        "Choose localisation based on accept-language header (default 'en')"
+        accepted = self.parse_accepted_languages()
+        # -- Choose the appropriate translation dictionary (default is english)
+        lang = "en"
+        for alang in accepted:
+            if alang in self.localisations:
+                lang = alang
+                break
+        return self.localisations[lang]
+
+    def html(self, page):
+        """
+        page can be "main", "success", or "error"
+        returns an html page (in the appropriate language) as a string
+        """
+        dico = {}
+        dico.update(self.choose_language())
+        # -- Set message and picture
+        if self.message:
+            dico['message'] = '<div id="message">{0}</div>'.format(self.message)
+        else:
+            dico["message"] = ''
+        # The default appears to be missing/broken, so needs a bit of love anyway.
+        if self.picture:
+            dico["divpicture"] = self.divpicture
+        else:
+            dico["divpicture"] = ''
+        # -- Possibly provide download links
+        # TODO: Sanity-check for injections
+        links = ''
+        if self.publish_files:
+            for name in self.published_files():
+                encoded_name = urllibparse.quote(_encode_str_if_py2(name))
+                links += '<a href="/{0}">{1}</a>'.format(encoded_name, name)
+            links = '<div id="files">' + links + '</div>'
+        dico["files"] = links
+        # -- Add a link to discover the url
+        if self.client_address[0] == "127.0.0.1":
+            dico["port"] = self.server.server_port
+            dico["ssl"] = int(self.certfile is not None)
+            dico["linkurl"] = self.templates['linkurl'] % dico
+        else:
+            dico["linkurl"] = ''
+        return self.templates[page] % dico
+
+    @check_auth
+    def do_GET(self):
+        "Standard method to override in this Server object."
+        name = self.path.lstrip('/')
+        name = urllibparse.unquote(name)
+        name = _decode_str_if_py2(name, 'utf-8')
+
+        # TODO: Refactor special-method handling to make more modular?
+        # Include ability to self-define "special method" prefix path?
+        if self.picture != None and self.path == '/__droopy/picture':
+            # send the picture
+            self.send_file(self.picture)
+        # TODO Verify that this is path-injection proof
+        elif name in self.published_files():
+            localpath = os.path.join(self.directory, name)
+            self.send_file(localpath)
+        else:
+            self.send_html(self.html("main"))
+
+    @check_auth
+    def do_POST(self):
+        "Standard method to override in this Server object."
+        try:
+            self.log_message("Started file transfer")
+            # -- Save file (numbered to avoid overwriting, ex: foo-3.png)
+            form = DroopyFieldStorage(fp=self.rfile,
+                                      directory=self.directory,
+                                      headers=self.headers,
+                                      environ={'REQUEST_METHOD': self.command})
+            file_items = form[self.form_field]
+            #-- Handle multiple file upload
+            if not isinstance(file_items, list):
+                file_items = [file_items]
+            for item in file_items:
+                filename = _decode_str_if_py2(basename(item.filename), "utf-8")
+                if filename == "":
+                    continue
+                localpath = _encode_str_if_py2(os.path.join(self.directory, filename), "utf-8")
+                root, ext = os.path.splitext(localpath)
+                i = 1
+                # TODO: race condition...
+                while os.path.exists(localpath):
+                    localpath = "%s-%d%s" % (root, i, ext)
+                    i = i + 1
+                if hasattr(item, 'tmpfile'):
+                    # DroopyFieldStorage.make_file() has been called
+                    item.tmpfile.close()
+                    shutil.move(item.tmpfilename, localpath)
+                else:
+                    # no temporary file, self.file is a StringIO()
+                    # see cgi.FieldStorage.read_lines()
+                    with open(localpath, "wb") as fout:
+                        shutil.copyfileobj(item.file, fout)
+                if self.file_mode is not None:
+                    os.chmod(localpath, self.file_mode)
+                self.log_message("Received: %s", os.path.basename(localpath))
+
+            # -- Reply
+            if self.publish_files:
+                # The file list gives a feedback for the upload success
+                self.send_resp_headers(301, {'Location': '/'}, end=True)
+            else:
+                self.send_html(self.html("success"))
+
+        except Exception as e:
+            self.log_message(repr(e))
+            self.send_html(self.html("error"))
+            # raise e  # Dev only
+
+    def send_resp_headers(self, response_code, headers_dict, end=False):
+        "Just a shortcut for a common operation."
+        self.send_response(response_code)
+        for k, v in headers_dict.items():
+            self.send_header(k, v)
+        if end:
+            self.end_headers()
+
+    def send_html(self, htmlstr):
+        "Simply returns htmlstr with the appropriate content-type/status."
+        self.send_resp_headers(200, {'Content-type': 'text/html; charset=utf-8'}, end=True)
+        self.wfile.write(htmlstr.encode("utf-8"))
+
+    def send_file(self, localpath):
+        "Does what it says on the tin! Includes correct content-type/length."
+        with open(localpath, 'rb') as f:
+            self.send_resp_headers(200,
+                                   {'Content-length': os.fstat(f.fileno())[6],
+                                    'Content-type': mimetypes.guess_type(localpath)[0]},
+                                   end=True)
+            shutil.copyfileobj(f, self.wfile)
+
+    def published_files(self):
+        "Returns the list of files that should appear as download links."
+        names = []
+        # In py2, listdir() returns strings when the directory is a string.
+        for name in os.listdir(unicode(self.directory)):
+            if name.startswith(DroopyFieldStorage.TMPPREFIX):
+                continue
+            npath = os.path.join(self.directory, name)
+            if os.path.isfile(npath):
+                names.append(name)
+        names.sort(key=lambda s: s.lower())
+        return names
+
+    def handle(self):
+        "Lets parent object handle, but redirects socket exceptions as 'Abort's."
+        try:
+            httpserver.BaseHTTPRequestHandler.handle(self)
+        except socket.error as e:
+            self.log_message(str(e))
+            raise Abort(str(e))
+
+
+class ThreadedHTTPServer(socketserver.ThreadingMixIn,
+                         httpserver.HTTPServer):
+    "Allows propagation of socket.error in HTTPUploadHandler.handle"
+    def handle_error(self, request, client_address):
+        "Override socketserver.handle_error"
+        exctype = sys.exc_info()[0]
+        if not exctype is Abort:
+            httpserver.HTTPServer.handle_error(self, request, client_address)
+
+
+def run(hostname='',
+        port=80,
+        templates=None,
+        localisations=None,
+        directory='.',
+        timeout=3*60,
+        picture=None,
+        message='',
+        file_mode=None,
+        publish_files=False,
+        auth='',
+        certfile=None,
+        permitted_ciphers=(
+            'ECDH+AESGCM:ECDH+AES256:ECDH+AES128:ECDH+3DES'
+            ':RSA+AESGCM:RSA+AES:RSA+3DES'
+            ':!aNULL:!MD5:!DSS')):
+    """
+    certfile should be the path of a PEM TLS certificate.
+
+    permitted_ciphers, if a TLS cert is provided, is an OpenSSL cipher string.
+    The default here is taken from:
+      https://hynek.me/articles/hardening-your-web-servers-ssl-ciphers/
+    ..with DH-only ciphers removed because of precomputation hazard.
+    """
+    if templates is None or localisations is None:
+        raise ValueError("Must provide templates *and* localisations.")
+    socket.setdefaulttimeout(timeout)
+    HTTPUploadHandler.templates = templates
+    HTTPUploadHandler.directory = directory
+    HTTPUploadHandler.localisations = localisations
+    HTTPUploadHandler.certfile = certfile
+    HTTPUploadHandler.publish_files = publish_files
+    HTTPUploadHandler.picture = picture
+    HTTPUploadHandler.message = message
+    HTTPUploadHandler.file_mode = file_mode
+    HTTPUploadHandler.auth = auth
+    httpd = ThreadedHTTPServer((hostname, port), HTTPUploadHandler)
+    # TODO: Specify TLS1.2 only?
+    if certfile:
+        try:
+            import ssl
+        except:
+            print("Error: Could not import module 'ssl', exiting.")
+            sys.exit(2)
+        httpd.socket = ssl.wrap_socket(
+            httpd.socket,
+            certfile=certfile,
+            ciphers=permitted_ciphers,
+            server_side=True)
+    httpd.serve_forever()
+
+# -- Dato
+
 # -- HTML templates
 
 style = '''
@@ -609,330 +939,6 @@ default_localisations = {
         "discover":        u"查閱本網頁的網址"}
 }  # Ends default_localisations dictionary.
 
-class Abort(Exception):
-    "Used by handle to rethrow exceptions in ThreadedHTTPServer."
-
-
-class DroopyFieldStorage(cgi.FieldStorage):
-    """
-    The file is created in the destination directory and its name is
-    stored in the tmpfilename attribute.
-
-    Adds a keyword-argument "directory", which is where files are to be
-    stored. Because of CGI magic this might not be thread-safe.
-    """
-
-    TMPPREFIX = 'tmpdroopy'
-
-    # Would love to do a **kwargs job here but cgi has some recursive
-    # magic that passes all possible arguments positionally..
-    def __init__(self, fp=None, headers=None, outerboundary=b'',
-                 environ=os.environ, keep_blank_values=0, strict_parsing=0,
-                 limit=None, encoding='utf-8', errors='replace',
-                 directory='.'):
-        """
-        Adds 'directory' argument to FieldStorage.__init__.
-        Retains compatibility with FieldStorage.__init__ (which involves magic)
-        """
-        self.directory = directory
-        # Not only is cgi.FieldStorage full of magic, it's DIFFERENT
-        # magic in Py2/Py3. Here's a case of the core library making
-        # life difficult, in a class that's *supposed to be subclassed*!
-        if sys.version_info > (3,):
-            cgi.FieldStorage.__init__(self, fp, headers, outerboundary,
-                                      environ, keep_blank_values,
-                                      strict_parsing, limit, encoding, errors)
-        else:
-            cgi.FieldStorage.__init__(self, fp, headers, outerboundary,
-                                      environ, keep_blank_values,
-                                      strict_parsing)
-
-    # Binary is passed in Py2 but not Py3.
-    def make_file(self, binary=None):
-        "Overrides builtin method to store tempfile in the set directory."
-        fd, name = tempfile.mkstemp(dir=self.directory, prefix=self.TMPPREFIX)
-        # Pylint doesn't like these if they're not declared in __init__ first,
-        # but setting tmpfile there leads to odd errors where it's never re-set
-        # to a file descriptor.
-        self.tmpfile = os.fdopen(fd, 'w+b')
-        self.tmpfilename = name
-        return self.tmpfile
-
-
-class HTTPUploadHandler(httpserver.BaseHTTPRequestHandler):
-    "The guts of Droopy-a custom handler that accepts files & serves templates"
-
-    @property
-    def templates(self):
-        "Ensure provided."
-        raise NotImplementedError("Must set class with a templates dict!")
-
-    @property
-    def localisations(self):
-        "Ensure provided."
-        raise NotImplementedError("Must set class with a localisations dict!")
-
-    @property
-    def directory(self):
-        "Ensure provided."
-        raise NotImplementedError("Must provide directory to host.")
-
-    message = ''
-    picture = ''
-    publish_files = False
-    file_mode = None
-    protocol_version = 'HTTP/1.0'
-    form_field = 'upfile'
-    auth = ''
-    certfile = None
-    divpicture = '<div class="box"><img src="/__droopy/picture"/></div>'
-
-    def get_case_insensitive_header(self, hdrname, default):
-        "Python 2 and 3 differ in header capitalisation!"
-        lc_hdrname = hdrname.lower()
-        lc_headers = {h.lower():h for h in self.headers.keys()}
-        if lc_hdrname in lc_headers:
-            return self.headers[lc_headers[lc_hdrname]]
-        else:
-            return default
-
-    @staticmethod
-    def prefcode_tuple(prefcode):
-        "Parse language preferences into (preference, language) tuples."
-        prefbits = prefcode.split(";q=")
-        if len(prefbits) == 1:
-            return (1, prefbits[0])
-        else:
-            return (float(prefbits[1]), prefbits[0])
-
-    def parse_accepted_languages(self):
-        "Parse accept-language header"
-        lhdr = self.get_case_insensitive_header('accept-language', default='')
-        if lhdr:
-            accepted = [self.prefcode_tuple(lang) for lang in lhdr.split(',')]
-            accepted.sort()
-            accepted.reverse()
-            return [x[1] for x in accepted]
-        else:
-            return []
-
-    def choose_language(self):
-        "Choose localisation based on accept-language header (default 'en')"
-        accepted = self.parse_accepted_languages()
-        # -- Choose the appropriate translation dictionary (default is english)
-        lang = "en"
-        for alang in accepted:
-            if alang in self.localisations:
-                lang = alang
-                break
-        return self.localisations[lang]
-
-    def html(self, page):
-        """
-        page can be "main", "success", or "error"
-        returns an html page (in the appropriate language) as a string
-        """
-        dico = {}
-        dico.update(self.choose_language())
-        # -- Set message and picture
-        if self.message:
-            dico['message'] = '<div id="message">{0}</div>'.format(self.message)
-        else:
-            dico["message"] = ''
-        # The default appears to be missing/broken, so needs a bit of love anyway.
-        if self.picture:
-            dico["divpicture"] = self.divpicture
-        else:
-            dico["divpicture"] = ''
-        # -- Possibly provide download links
-        # TODO: Sanity-check for injections
-        links = ''
-        if self.publish_files:
-            for name in self.published_files():
-                encoded_name = urllibparse.quote(_encode_str_if_py2(name))
-                links += '<a href="/{0}">{1}</a>'.format(encoded_name, name)
-            links = '<div id="files">' + links + '</div>'
-        dico["files"] = links
-        # -- Add a link to discover the url
-        if self.client_address[0] == "127.0.0.1":
-            dico["port"] = self.server.server_port
-            dico["ssl"] = int(self.certfile is not None)
-            dico["linkurl"] = self.templates['linkurl'] % dico
-        else:
-            dico["linkurl"] = ''
-        return self.templates[page] % dico
-
-    @check_auth
-    def do_GET(self):
-        "Standard method to override in this Server object."
-        name = self.path.lstrip('/')
-        name = urllibparse.unquote(name)
-        name = _decode_str_if_py2(name, 'utf-8')
-
-        # TODO: Refactor special-method handling to make more modular?
-        # Include ability to self-define "special method" prefix path?
-        if self.picture != None and self.path == '/__droopy/picture':
-            # send the picture
-            self.send_file(self.picture)
-        # TODO Verify that this is path-injection proof
-        elif name in self.published_files():
-            localpath = os.path.join(self.directory, name)
-            self.send_file(localpath)
-        else:
-            self.send_html(self.html("main"))
-
-    @check_auth
-    def do_POST(self):
-        "Standard method to override in this Server object."
-        try:
-            self.log_message("Started file transfer")
-            # -- Save file (numbered to avoid overwriting, ex: foo-3.png)
-            form = DroopyFieldStorage(fp=self.rfile,
-                                      directory=self.directory,
-                                      headers=self.headers,
-                                      environ={'REQUEST_METHOD': self.command})
-            file_items = form[self.form_field]
-            #-- Handle multiple file upload
-            if not isinstance(file_items, list):
-                file_items = [file_items]
-            for item in file_items:
-                filename = _decode_str_if_py2(basename(item.filename), "utf-8")
-                if filename == "":
-                    continue
-                localpath = _encode_str_if_py2(os.path.join(self.directory, filename), "utf-8")
-                root, ext = os.path.splitext(localpath)
-                i = 1
-                # TODO: race condition...
-                while os.path.exists(localpath):
-                    localpath = "%s-%d%s" % (root, i, ext)
-                    i = i + 1
-                if hasattr(item, 'tmpfile'):
-                    # DroopyFieldStorage.make_file() has been called
-                    item.tmpfile.close()
-                    shutil.move(item.tmpfilename, localpath)
-                else:
-                    # no temporary file, self.file is a StringIO()
-                    # see cgi.FieldStorage.read_lines()
-                    with open(localpath, "wb") as fout:
-                        shutil.copyfileobj(item.file, fout)
-                if self.file_mode is not None:
-                    os.chmod(localpath, self.file_mode)
-                self.log_message("Received: %s", os.path.basename(localpath))
-
-            # -- Reply
-            if self.publish_files:
-                # The file list gives a feedback for the upload success
-                self.send_resp_headers(301, {'Location': '/'}, end=True)
-            else:
-                self.send_html(self.html("success"))
-
-        except Exception as e:
-            self.log_message(repr(e))
-            self.send_html(self.html("error"))
-            # raise e  # Dev only
-
-    def send_resp_headers(self, response_code, headers_dict, end=False):
-        "Just a shortcut for a common operation."
-        self.send_response(response_code)
-        for k, v in headers_dict.items():
-            self.send_header(k, v)
-        if end:
-            self.end_headers()
-
-    def send_html(self, htmlstr):
-        "Simply returns htmlstr with the appropriate content-type/status."
-        self.send_resp_headers(200, {'Content-type': 'text/html; charset=utf-8'}, end=True)
-        self.wfile.write(htmlstr.encode("utf-8"))
-
-    def send_file(self, localpath):
-        "Does what it says on the tin! Includes correct content-type/length."
-        with open(localpath, 'rb') as f:
-            self.send_resp_headers(200,
-                                   {'Content-length': os.fstat(f.fileno())[6],
-                                    'Content-type': mimetypes.guess_type(localpath)[0]},
-                                   end=True)
-            shutil.copyfileobj(f, self.wfile)
-
-    def published_files(self):
-        "Returns the list of files that should appear as download links."
-        names = []
-        # In py2, listdir() returns strings when the directory is a string.
-        for name in os.listdir(unicode(self.directory)):
-            if name.startswith(DroopyFieldStorage.TMPPREFIX):
-                continue
-            npath = os.path.join(self.directory, name)
-            if os.path.isfile(npath):
-                names.append(name)
-        names.sort(key=lambda s: s.lower())
-        return names
-
-    def handle(self):
-        "Lets parent object handle, but redirects socket exceptions as 'Abort's."
-        try:
-            httpserver.BaseHTTPRequestHandler.handle(self)
-        except socket.error as e:
-            self.log_message(str(e))
-            raise Abort(str(e))
-
-
-class ThreadedHTTPServer(socketserver.ThreadingMixIn,
-                         httpserver.HTTPServer):
-    "Allows propagation of socket.error in HTTPUploadHandler.handle"
-    def handle_error(self, request, client_address):
-        "Override socketserver.handle_error"
-        exctype = sys.exc_info()[0]
-        if not exctype is Abort:
-            httpserver.HTTPServer.handle_error(self, request, client_address)
-
-
-def run(hostname='',
-        port=80,
-        templates=default_templates,
-        localisations=default_localisations,
-        directory='.',
-        timeout=3*60,
-        picture=None,
-        message='',
-        file_mode=None,
-        publish_files=False,
-        auth='',
-        certfile=None,
-        permitted_ciphers=(
-            'ECDH+AESGCM:ECDH+AES256:ECDH+AES128:ECDH+3DES'
-            ':RSA+AESGCM:RSA+AES:RSA+3DES'
-            ':!aNULL:!MD5:!DSS')):
-    """
-    certfile should be the path of a PEM TLS certificate.
-
-    permitted_ciphers, if a TLS cert is provided, is an OpenSSL cipher string.
-    The default here is taken from:
-      https://hynek.me/articles/hardening-your-web-servers-ssl-ciphers/
-    ..with DH-only ciphers removed because of precomputation hazard.
-    """
-    socket.setdefaulttimeout(timeout)
-    HTTPUploadHandler.templates = templates
-    HTTPUploadHandler.directory = directory
-    HTTPUploadHandler.localisations = localisations
-    HTTPUploadHandler.certfile = certfile
-    HTTPUploadHandler.publish_files = publish_files
-    HTTPUploadHandler.picture = picture
-    HTTPUploadHandler.message = message
-    HTTPUploadHandler.file_mode = file_mode
-    HTTPUploadHandler.auth = auth
-    httpd = ThreadedHTTPServer((hostname, port), HTTPUploadHandler)
-    # TODO: Specify TLS1.2 only?
-    if certfile:
-        try:
-            import ssl
-        except:
-            print("Error: Could not import module 'ssl', exiting.")
-            sys.exit(2)
-        httpd.socket = ssl.wrap_socket(
-            httpd.socket,
-            certfile=certfile,
-            ciphers=permitted_ciphers,
-            server_side=True)
-    httpd.serve_forever()
 
 # -- Options
 
