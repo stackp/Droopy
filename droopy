@@ -113,7 +113,6 @@ def basename(path):
 
 def check_auth(method):
     "Wraps methods on the request handler to require simple auth checks."
-    @functools.wraps
     def decorated(self, *pargs):
         "Reject if auth fails."
         if self.auth:
@@ -130,6 +129,7 @@ def check_auth(method):
                 method(self, *pargs)
         else:
             method(self, *pargs)
+    functools.update_wrapper(decorated, method)
     return decorated
 
 # -- HTML templates
@@ -609,6 +609,9 @@ default_localisations = {
         "discover":        u"查閱本網頁的網址"}
 }  # Ends default_localisations dictionary.
 
+class Abort(Exception):
+    "Used by handle to rethrow exceptions in ThreadedHTTPServer."
+
 
 class DroopyFieldStorage(cgi.FieldStorage):
     """
@@ -631,8 +634,6 @@ class DroopyFieldStorage(cgi.FieldStorage):
         Adds 'directory' argument to FieldStorage.__init__.
         Retains compatibility with FieldStorage.__init__ (which involves magic)
         """
-        self.tmpfile = ''      # Shutup pylint
-        self.tmpfilename = ''  # Shut up pylint
         self.directory = directory
         # Not only is cgi.FieldStorage full of magic, it's DIFFERENT
         # magic in Py2/Py3. Here's a case of the core library making
@@ -646,9 +647,13 @@ class DroopyFieldStorage(cgi.FieldStorage):
                                       environ, keep_blank_values,
                                       strict_parsing)
 
-    def make_file(self):
+    # Binary is passed in Py2 but not Py3.
+    def make_file(self, binary=None):
         "Overrides builtin method to store tempfile in the set directory."
         fd, name = tempfile.mkstemp(dir=self.directory, prefix=self.TMPPREFIX)
+        # Pylint doesn't like these if they're not declared in __init__ first,
+        # but setting tmpfile there leads to odd errors where it's never re-set
+        # to a file descriptor.
         self.tmpfile = os.fdopen(fd, 'w+b')
         self.tmpfilename = name
         return self.tmpfile
@@ -729,39 +734,34 @@ class HTTPUploadHandler(httpserver.BaseHTTPRequestHandler):
         page can be "main", "success", or "error"
         returns an html page (in the appropriate language) as a string
         """
-        dico = self.choose_language()
-
+        dico = {}
+        dico.update(self.choose_language())
         # -- Set message and picture
         if self.message:
-            dico["message"] = ('<div id="message">%s</div>' %
-                               self.message)
+            dico['message'] = '<div id="message">{0}</div>'.format(self.message)
         else:
-            dico["message"] = ""
-
+            dico["message"] = ''
         # The default appears to be missing/broken, so needs a bit of love anyway.
         if self.picture:
             dico["divpicture"] = self.divpicture
         else:
-            dico["divpicture"] = ""
-
+            dico["divpicture"] = ''
         # -- Possibly provide download links
         # TODO: Sanity-check for injections
-        links = ""
+        links = ''
         if self.publish_files:
             for name in self.published_files():
                 encoded_name = urllibparse.quote(_encode_str_if_py2(name))
                 links += '<a href="/{0}">{1}</a>'.format(encoded_name, name)
             links = '<div id="files">' + links + '</div>'
         dico["files"] = links
-
         # -- Add a link to discover the url
         if self.client_address[0] == "127.0.0.1":
             dico["port"] = self.server.server_port
             dico["ssl"] = int(self.certfile is not None)
             dico["linkurl"] = self.templates['linkurl'] % dico
         else:
-            dico["linkurl"] = ""
-
+            dico["linkurl"] = ''
         return self.templates[page] % dico
 
     @check_auth
@@ -776,12 +776,10 @@ class HTTPUploadHandler(httpserver.BaseHTTPRequestHandler):
         if self.picture != None and self.path == '/__droopy/picture':
             # send the picture
             self.send_file(self.picture)
-
         # TODO Verify that this is path-injection proof
         elif name in self.published_files():
             localpath = os.path.join(self.directory, name)
             self.send_file(localpath)
-
         else:
             self.send_html(self.html("main"))
 
@@ -790,7 +788,6 @@ class HTTPUploadHandler(httpserver.BaseHTTPRequestHandler):
         "Standard method to override in this Server object."
         try:
             self.log_message("Started file transfer")
-
             # -- Save file (numbered to avoid overwriting, ex: foo-3.png)
             # Realised CGI handles headers for you, so no need to pollute env
             # with content-type wrangling anymore.
@@ -799,7 +796,6 @@ class HTTPUploadHandler(httpserver.BaseHTTPRequestHandler):
                                       headers=self.headers,
                                       environ={'REQUEST_METHOD': self.command})
             file_items = form[self.form_field]
-
             #-- Handle multiple file upload
             if not isinstance(file_items, list):
                 file_items = [file_items]
@@ -808,11 +804,9 @@ class HTTPUploadHandler(httpserver.BaseHTTPRequestHandler):
                 filename = _decode_str_if_py2(basename(item.filename), "utf-8")
                 if filename == "":
                     continue
-
                 localpath = _encode_str_if_py2(os.path.join(self.directory, filename), "utf-8")
                 root, ext = os.path.splitext(localpath)
                 i = 1
-
                 # TODO: race condition...
                 while os.path.exists(localpath):
                     localpath = "%s-%d%s" % (root, i, ext)
@@ -826,48 +820,47 @@ class HTTPUploadHandler(httpserver.BaseHTTPRequestHandler):
                     # see cgi.FieldStorage.read_lines()
                     with open(localpath, "wb") as fout:
                         shutil.copyfileobj(item.file, fout)
-
                 if self.file_mode is not None:
                     os.chmod(localpath, self.file_mode)
                 self.log_message("Received: %s", os.path.basename(localpath))
 
             # -- Reply
             if self.publish_files:
-                # The file list gives a feedback for the upload
-                # success
-                self.send_response(301)
-                self.send_header("Location", "/")
-                self.end_headers()
+                # The file list gives a feedback for the upload success
+                self.send_resp_headers(301, {'Location': '/'}, end=True)
             else:
                 self.send_html(self.html("success"))
 
         except Exception as e:
             self.log_message(repr(e))
             self.send_html(self.html("error"))
-            raise e # Dev only
+            # raise e  # Dev only
+
+    def send_resp_headers(self, response_code, headers_dict, end=False):
+        self.send_response(response_code)
+        for k,v in headers_dict.items():
+            self.send_header(k, v)
+        if end:
+            self.end_headers()
 
     def send_html(self, htmlstr):
         "Simply returns htmlstr with the appropriate content-type/status."
-        self.send_response(200)
-        self.send_header('Content-type', 'text/html; charset=utf-8')
-        self.end_headers()
+        self.send_resp_headers(200, {'Content-type': 'text/html; charset=utf-8'}, end=True)
         self.wfile.write(htmlstr.encode("utf-8"))
 
     def send_file(self, localpath):
         "Does what it says on the tin! Includes correct content-type/length."
-        self.send_response(200)
-        self.send_header('Content-type',
-                         mimetypes.guess_type(localpath)[0])
         with open(localpath, 'rb') as f:
-            self.send_header('Content-length', os.fstat(f.fileno())[6])
-            self.end_headers()
+            self.send_resp_headers(200,
+                {'Content-length': os.fstat(f.fileno())[6],
+                 'Content-type': mimetypes.guess_type(localpath)[0]},
+                end=True)
             shutil.copyfileobj(f, self.wfile)
 
     def published_files(self):
         "Returns the list of files that should appear as download links."
         names = []
-        # os.listdir() returns a list of unicode strings when the
-        # directory is passed as an unicode string itself.
+        # In py2, listdir() returns strings when the directory is a string.
         for name in os.listdir(unicode(self.directory)):
             if name.startswith(DroopyFieldStorage.TMPPREFIX):
                 continue
@@ -877,9 +870,6 @@ class HTTPUploadHandler(httpserver.BaseHTTPRequestHandler):
         names.sort(key=lambda s: s.lower())
         return names
 
-    # TODO: Appears to allow socket.error to propagate by wrapping in
-    # Abort class and handling specially in ThreadedHTTPServer. Is there a
-    # cleaner way? Seems you could just check for socket.error and be done?
     def handle(self):
         "Lets parent object handle, but redirects socket exceptions as 'Abort's."
         try:
@@ -889,14 +879,9 @@ class HTTPUploadHandler(httpserver.BaseHTTPRequestHandler):
             raise Abort(str(e))
 
 
-class Abort(Exception):
-    "Used by handle to rethrow exceptions in ThreadedHTTPServer."
-
-
 class ThreadedHTTPServer(socketserver.ThreadingMixIn,
                          httpserver.HTTPServer):
     "Allows propagation of socket.error in HTTPUploadHandler.handle"
-
     def handle_error(self, request, client_address):
         "Override socketserver.handle_error"
         exctype = sys.exc_info()[0]
@@ -904,7 +889,6 @@ class ThreadedHTTPServer(socketserver.ThreadingMixIn,
             httpserver.HTTPServer.handle_error(self, request, client_address)
 
 
-# TODO: Specify TLS1.2 only?
 def run(hostname='',
         port=80,
         templates=default_templates,
@@ -945,6 +929,7 @@ def run(hostname='',
     HTTPUploadHandler.file_mode = file_mode
     HTTPUploadHandler.auth = auth
     httpd = ThreadedHTTPServer(server_address, HTTPUploadHandler)
+    # TODO: Specify TLS1.2 only?
     if certfile:
         try:
             import ssl
@@ -958,14 +943,11 @@ def run(hostname='',
             server_side=True)
     httpd.serve_forever()
 
-
-
 # -- Options
 
 def configfile():
     "Returns appropriate absolute path to configfile, per-platform."
     appname = 'droopy'
-    # os.name is 'posix', 'nt', 'os2', 'mac', 'ce' or 'riscos'
     if os.name == 'posix':
         filename = os.path.join(os.environ['HOME'], appname)
     elif os.name == 'mac':
@@ -973,7 +955,8 @@ def configfile():
     elif os.name == 'nt':
         filename = os.path.join(os.environ['APPDATA'], appname)
     else:
-        filename = None
+        # Exaggerated shrug
+        filename = './' + appname
     return filename
 
 
@@ -1019,7 +1002,6 @@ def parse_args(cmd=None):
 
     Parse sys.argv[1:] if no argument is passed.
     """
-
     parser = argparse.ArgumentParser(
         description="Usage: droopy [options] [PORT]",
         epilog='Example:\n    droopy -m "Hi, this is Bob. You can send me a file." -p avatar.png'
@@ -1045,44 +1027,36 @@ def parse_args(cmd=None):
     parser.add_argument('--delete-config', action='store_true', default=False,
                         help='delete the configuration file and exit')
     args = parser.parse_args(cmd)
-
     if args.picture:
         if os.path.exists(args.picture):
             args.picture = fullpath(args.picture)
         else:
-            print("Picture not found: '%s'" % args.picture)
-
+            print("Picture not found: '{0}'".format(args.picture))
     if args.directory:
         args.directory = fullpath(args.directory)
-
     if args.delete_config:
         filename = configfile()
         os.remove(filename)
         print('Deleted ' + filename)
         sys.exit(0)
-
     if args.auth:
         if ':' not in args.auth:
             print("Error: authentication credentials must be "
                   "specified as USER:PASSWORD")
             sys.exit(1)
-
     if args.ssl:
         if not os.path.isfile(args.ssl):
-            print("PEM file not found: '%s'" % args.ssl)
+            print("PEM file not found: '{0}'".format(args.ssl))
             sys.exit(1)
         args.ssl = fullpath(args.ssl)
-
     if args.chmod is not None:
         try:
             args.chmod = int(args.chmod, 8)
         except ValueError:
-            print("Invalid octal value passed to chmod option: '%s'" % args.chmod)
+            print("Invalid octal value passed to chmod option: '{0}'".format(args.chmod))
             sys.exit(1)
-
     return vars(args)
 
-# --
 
 def main():
     "Encapsulating main prevents scope leakage."
@@ -1093,14 +1067,13 @@ def main():
     |_____/|__| |_____|_____|   __|___  |
                             |__|  |_____|
     ''')
-
     # TODO: For future-proofness, parse args first, then parse
     # config, then apply args atop config to get overridden vars.
     # This will allow specifying a custom config *and* overriding this config.
     args = {}
     args.update(load_options(configfile()))
     if args:
-        print('Configuration found in %s' % configfile())
+        print('Configuration found in {0}'.format(configfile()))
     else:
         print("No configuration file found.")
     args.update(parse_args())
@@ -1109,12 +1082,11 @@ def main():
         # options that retains backward compatibility but allows
         # custom configs in future.
         save_options()
-        print("Options saved in %s" % configfile())
-
-    print("Files will be uploaded to %s\n" % args['directory'])
+        print("Options saved in {0}".format(configfile()))
+    print("Files will be uploaded to {0}\n".format(args['directory']))
     proto = 'https' if args['ssl'] else 'http'
-    print("HTTP server starting... Check it out at %s://localhost:%d"
-          % (proto, args['port']))
+    print("HTTP server starting...",
+          "Check it out at {0}://localhost:{1}".format(proto, args['port']))
     try:
         run(port=args['port'],
             certfile=args['ssl'],
