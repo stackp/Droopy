@@ -10,6 +10,8 @@ Changelog
             * Code refactoring and re-layout
             * Python 2 and 3 compatibility
             * Efficiency and Security improvements
+            * Added --config-file option.
+            * Retains backwards compatibility.
    20131121 * Update HTML/CSS for mobile devices
             * Add HTTPS support
             * Add HTTP basic authentication
@@ -942,11 +944,11 @@ default_localisations = {
 
 # -- Options
 
-def configfile():
+def default_configfile():
     "Returns appropriate absolute path to configfile, per-platform."
     appname = 'droopy'
     if os.name == 'posix':
-        filename = os.path.join(os.environ['HOME'], appname)
+        filename = os.path.join(os.environ['HOME'], "." + appname)
     elif os.name == 'mac':
         filename = os.path.join(os.environ['HOME'], 'Library', 'Application Support', appname)
     elif os.name == 'nt':
@@ -957,11 +959,20 @@ def configfile():
     return filename
 
 
-def save_options():
+def save_options(cfg):
     "Dumps sys.argv with one argument per line."
-    with open(configfile(), "w") as O:
+    with open(cfg, "w") as O:
+        ignorenext = False
         for opt in sys.argv[1:]:
+            if ignorenext:
+                ignorenext = False
+                continue
             if opt.startswith("-"):
+                if opt.strip() in ("--save-config", "--delete-config"):
+                    continue
+                if opt.strip() == '--config-file':
+                    ignorenext = True
+                    continue
                 O.write("\n")
             else:
                 O.write(" ")
@@ -993,7 +1004,7 @@ def load_options(cfg_loc):
         return {}
 
 
-def parse_args(cmd=None):
+def parse_args(cmd=None, ignore_defaults=False):
     "Parse terminal-style args list,  or sys.argv[1:] if no argument is passed."
     parser = argparse.ArgumentParser(
         description="Usage: droopy [options] [PORT]",
@@ -1007,7 +1018,7 @@ def parse_args(cmd=None):
                         help='set the message')
     parser.add_argument('-p', '--picture', type=str, default='',
                         help='set the picture')
-    parser.add_argument('--dl', '--publish-files', action='store_true', default=False,
+    parser.add_argument('--publish-files', '--dl', action='store_true', default=False,
                         help='provide download links')
     parser.add_argument('-a', '--auth', type=str, default='',
                         help='set the authentication credentials, in form USER:PASS')
@@ -1019,16 +1030,16 @@ def parse_args(cmd=None):
                         help='save options in a configuration file')
     parser.add_argument('--delete-config', action='store_true', default=False,
                         help='delete the configuration file and exit')
+    parser.add_argument('--config-file', default=None,
+                        help='configuration file to load terminal arguments from.')
     args = parser.parse_args(cmd)
     if args.picture:
         if os.path.exists(args.picture):
             args.picture = fullpath(args.picture)
         else:
             print("Picture not found: '{0}'".format(args.picture))
-    if args.directory:
-        args.directory = fullpath(args.directory)
     if args.delete_config:
-        filename = configfile()
+        filename = default_configfile()
         os.remove(filename)
         print('Deleted ' + filename)
         sys.exit(0)
@@ -1048,11 +1059,19 @@ def parse_args(cmd=None):
         except ValueError:
             print("Invalid octal value passed to chmod option: '{0}'".format(args.chmod))
             sys.exit(1)
-    return vars(args)
+    # Needs to be set after de-defaulting because CWD varies, obviously. :)
+    args.directory = fullpath(args.directory)
+    d_args = vars(args)
+    if ignore_defaults:
+        default_set = parse_args([])
+        for k, v in default_set.items():
+            if v == d_args[k]:
+                del d_args[k]
+    return d_args
 
 
 def main():
-    "Encapsulating main prevents scope leakage."
+    "Encapsulating main prevents scope leakage and pleases linters."
     print('''\
      _____
     |     \.----.-----.-----.-----.--.--.
@@ -1060,22 +1079,19 @@ def main():
     |_____/|__| |_____|_____|   __|___  |
                             |__|  |_____|
     ''')
-    # TODO: For future-proofness, parse args first, then parse
-    # config, then apply args atop config to get overridden vars.
-    # This will allow specifying a custom config *and* overriding this config.
-    args = {}
-    args.update(load_options(configfile()))
+    term_args = parse_args(ignore_defaults=True)
+    cfg = term_args.get('config_file', default_configfile())
+    args = load_options(cfg)
     if args:
-        print('Configuration found in {0}'.format(configfile()))
+        print("Configuration found in {0}".format(cfg))
+        args.update(term_args)
     else:
-        print("No configuration file found.")
-    args.update(parse_args())
+        print("No configuration file found")
+        args.update(parse_args(ignore_defaults=False))
     if args['save_config']:
-        # TODO: Need a compatible and robust way to save/load
-        # options that retains backward compatibility but allows
-        # custom configs in future.
-        save_options()
-        print("Options saved in {0}".format(configfile()))
+        cfg = args.get('config_file', default_configfile())
+        save_options(cfg)
+        print("Options saved in {0}".format(cfg))
     print("Files will be uploaded to {0}\n".format(args['directory']))
     proto = 'https' if args['ssl'] else 'http'
     print("HTTP server starting...",
@@ -1087,13 +1103,12 @@ def main():
             message=args['message'],
             directory=args['directory'],
             file_mode=args['chmod'],
-            publish_files=args['dl'],
+            publish_files=args['publish_files'],
             auth=args['auth'],
             templates=default_templates,
             localisations=default_localisations)
     except KeyboardInterrupt:
-        print('^C received, shutting down server')
-        # some threads may run until they terminate
+        print('^C received, awaiting termination of remaining server threads..')
 
 if __name__ == '__main__':
     main()
