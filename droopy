@@ -109,9 +109,8 @@ def check_auth(method):
     "Wraps methods on the request handler to require simple auth checks."
     # TODO: Functools decorator wrapper?
     def decorated(self, *args):
-        # TODO: Kill global
-        if auth and self.headers.getheader('Authorization') != \
-                                        'Basic ' + base64.b64encode(auth):
+        if self.auth and self.headers.getheader('Authorization') != \
+                                        'Basic ' + base64.b64encode(self.auth):
             self.send_response(401)
             self.send_header('WWW-Authenticate', 'Basic realm=\"Droopy\"')
             self.send_header('Content-type', 'text/html')
@@ -119,17 +118,6 @@ def check_auth(method):
         else:
             method(self, *args)
     return decorated
-
-
-picture = None
-message = ""
-port = 8000
-directory = os.curdir
-must_save_options = False
-publish_files = False
-auth = None
-certfile = None
-file_mode = None
 
 # -- HTML templates
 
@@ -617,7 +605,7 @@ class DroopyFieldStorage(cgi.FieldStorage):
     TMPPREFIX = 'tmpdroopy'
 
     def make_file(self, binary=None):
-        fd, name = tempfile.mkstemp(dir=directory, prefix=self.TMPPREFIX)
+        fd, name = tempfile.mkstemp(dir=self.directory, prefix=self.TMPPREFIX)
         self.tmpfile = os.fdopen(fd, 'w+b')
         self.tmpfilename = name
         return self.tmpfile
@@ -635,11 +623,17 @@ class HTTPUploadHandler(httpserver.BaseHTTPRequestHandler):
     def localisations(self):
         raise NotImplementedError("Must set class with a localisations dict!")
 
+    @property
+    def directory(self):
+        raise NotImplementedError("Must provide directory to host.")
+
     message = ''
     picture = ''
     publish_files = False
+    file_mode = None
     protocol_version = 'HTTP/1.0'
     form_field = 'upfile'
+    auth = ''
     certfile = None
     divpicture = '<div class="box"><img src="/__droopy/picture"/></div>'
 
@@ -671,8 +665,9 @@ class HTTPUploadHandler(httpserver.BaseHTTPRequestHandler):
             if alang in self.localisations:
                 lang = alang
                 break
-        # TODO: Why does this copy?
-        return copy.copy(self.localisations[lang])
+        # TODO: Why does this copy? Thread safety? But not modified, so..?
+        #return copy.copy(self.localisations[lang])
+        return self.localisations[lang]
 
     def html(self, page):
         """
@@ -722,12 +717,15 @@ class HTTPUploadHandler(httpserver.BaseHTTPRequestHandler):
         name = urllibparse.unquote(name)
         name = _decode_str_if_py2(name, 'utf-8')
 
-        if picture != None and self.path == '/__droopy/picture':
+        # TODO: Refactor special-method handling to make more modular?
+        # Include ability to self-define "special method" prefix path?
+        if self.picture != None and self.path == '/__droopy/picture':
             # send the picture
-            self.send_file(picture)
+            self.send_file(self.picture)
 
+        # TODO Verify that this is path-injection proof
         elif name in self.published_files():
-            localpath = os.path.join(directory, name)
+            localpath = os.path.join(self.directory, name)
             self.send_file(localpath)
 
         else:
@@ -756,7 +754,7 @@ class HTTPUploadHandler(httpserver.BaseHTTPRequestHandler):
                 if filename == "":
                     continue
 
-                localpath = _encode_str_if_py2(os.path.join(directory, filename), "utf-8")
+                localpath = _encode_str_if_py2(os.path.join(self.directory, filename), "utf-8")
                 root, ext = os.path.splitext(localpath)
                 i = 1
 
@@ -774,12 +772,12 @@ class HTTPUploadHandler(httpserver.BaseHTTPRequestHandler):
                     with open(localpath, "wb") as fout:
                         shutil.copyfileobj(item.file, fout)
 
-                if file_mode is not None:
-                    os.chmod(localpath, file_mode)
+                if self.file_mode is not None:
+                    os.chmod(localpath, self.file_mode)
                 self.log_message("Received: %s", os.path.basename(localpath))
 
             # -- Reply
-            if publish_files:
+            if self.publish_files:
                 # The file list gives a feedback for the upload
                 # success
                 self.send_response(301)
@@ -817,10 +815,10 @@ class HTTPUploadHandler(httpserver.BaseHTTPRequestHandler):
         names = []
         # os.listdir() returns a list of unicode strings when the
         # directory is passed as an unicode string itself.
-        for name in os.listdir(unicode(directory)):
+        for name in os.listdir(unicode(self.directory)):
             if name.startswith(DroopyFieldStorage.TMPPREFIX):
                 continue
-            npath = os.path.join(directory, name)
+            npath = os.path.join(self.directory, name)
             if os.path.isfile(npath):
                 names.append(name)
         names.sort(key=lambda s: s.lower())
@@ -853,12 +851,17 @@ class ThreadedHTTPServer(socketserver.ThreadingMixIn,
 
 
 # TODO: Specify TLS1.2 only?
-def run(domain='',
+def run(hostname='',
         port=80,
         templates=default_templates,
         localisations=default_localisations,
+        directory='.',
         timeout=3*60,
+        picture=None,
+        message='',
+        file_mode=None,
         publish_files=False,
+        auth='',
         certfile=None,
         permitted_ciphers='ECDH+AESGCM:ECDH+AES256:ECDH+AES128:ECDH+3DES:RSA+AESGCM:RSA+AES:RSA+3DES:!aNULL:!MD5:!DSS'):
     """
@@ -874,11 +877,16 @@ def run(domain='',
     ..with DH-only ciphers removed because of precomputation hazard.
     """
     socket.setdefaulttimeout(3*60)
-    server_address = ('', port)
+    server_address = (hostname, port)
     HTTPUploadHandler.templates = templates
+    HTTPUploadHandler.directory = directory
     HTTPUploadHandler.localisations = localisations
     HTTPUploadHandler.certfile = certfile
     HTTPUploadHandler.publish_files = publish_files
+    HTTPUploadHandler.picture = picture
+    HTTPUploadHandler.message = message
+    HTTPUploadHandler.file_mode = file_mode
+    HTTPUploadHandler.auth = auth
     httpd = ThreadedHTTPServer(server_address, HTTPUploadHandler)
     if certfile:
         try:
@@ -957,19 +965,19 @@ def parse_args(cmd=None):
     )
     parser.add_argument("port", type=int, nargs='?', default=8000,
                         help='port number to host droopy upon')
-    parser.add_argument('-d', '--directory', type=str, default='',
+    parser.add_argument('-d', '--directory', type=str, default='.',
                         help='set the directory to upload files to')
     parser.add_argument('-m', '--message', type=str, default='',
                         help='set the message')
     parser.add_argument('-p', '--picture', type=str, default='',
                         help='set the picture')
-    parser.add_argument('--dl', action='store_true', default=False,
+    parser.add_argument('--dl', '--publish-files', action='store_true', default=False,
                         help='provide download links')
     parser.add_argument('-a', '--auth', type=str, default='',
                         help='set the authentication credentials, in form USER:PASS')
     parser.add_argument('--ssl', type=str, default='',
                         help='set up https using the certificate file')
-    parser.add_argument('--chmod', type=str, default='',
+    parser.add_argument('--chmod', type=str, default=None,
                         help='set the file permissions (octal value)')
     parser.add_argument('--save-config', action='store_true', default=False,
                         help='save options in a configuration file')
@@ -977,24 +985,14 @@ def parse_args(cmd=None):
                         help='delete the configuration file and exit')
     args = parser.parse_args(cmd)
 
-    # TODO: Kill Globals
-    global picture, message, port, directory, must_save_options, publish_files
-    global auth, certfile, file_mode
-
     if args.picture:
         if os.path.exists(args.picture):
-            picture = fullpath(args.picture)
+            args.picture = fullpath(args.picture)
         else:
             print("Picture not found: '%s'" % args.picture)
 
-    if args.message:
-        message = args.message
-
     if args.directory:
-        directory = fullpath(args.directory)
-
-    if args.save_config:
-        must_save_options = True
+        args.directory = fullpath(args.directory)
 
     if args.delete_config:
         try:
@@ -1005,34 +1003,28 @@ def parse_args(cmd=None):
             print(e)
         sys.exit(0)
 
-    if args.dl:
-        publish_files = True
-
     if args.auth:
         if ':' not in args.auth:
             print("Error: authentication credentials must be "
                   "specified as USER:PASSWORD")
             sys.exit(1)
-        auth = args.auth
 
     if args.ssl:
         if not os.path.isfile(args.ssl):
             print("PEM file not found: '%s'" % args.ssl)
             sys.exit(1)
-        certfile = fullpath(args.ssl)
+        args.ssl = fullpath(args.ssl)
 
-    if args.chmod:
+    if args.chmod is not None:
         try:
-            file_mode = int(args.chmod, 8)
+            args.chmod = int(args.chmod, 8)
         except ValueError:
             print("Invalid octal value passed to chmod option: '%s'" % args.chmod)
             sys.exit(1)
 
-    port = args.port
     return vars(args)
 
 # --
-
 
 if __name__ == '__main__':
     print('''\
@@ -1067,8 +1059,13 @@ if __name__ == '__main__':
     try:
         run(port=args['port'],
             certfile=args['ssl'],
-            templates=default_templates,
+            picture=args['picture'],
+            message=args['message'],
+            directory=args['directory'],
+            file_mode=args['chmod'],
             publish_files=args['dl'],
+            auth=args['auth'],
+            templates=default_templates,
             localisations=default_localisations)
     except KeyboardInterrupt:
         print('^C received, shutting down server')
