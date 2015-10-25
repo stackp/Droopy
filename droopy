@@ -80,6 +80,7 @@ import shutil
 import tempfile
 import socket
 import base64
+import functools
 
 
 def _decode_str_if_py2(inputstr, encoding):
@@ -105,6 +106,7 @@ def basename(path):
         path = mod.basename(path)
     return path
 
+@functools.wraps
 def check_auth(method):
     "Wraps methods on the request handler to require simple auth checks."
     # TODO: Functools decorator wrapper?
@@ -598,11 +600,33 @@ default_localisations = {
 
 
 class DroopyFieldStorage(cgi.FieldStorage):
-    """The file is created in the destination directory and its name is
+    """
+    The file is created in the destination directory and its name is
     stored in the tmpfilename attribute.
+
+    Adds a keyword-argument "directory", which is where files are to be
+    stored. Because of CGI magic this might not be thread-safe.
     """
 
     TMPPREFIX = 'tmpdroopy'
+
+    # Would love to do a **kwargs job here but cgi has some recursive
+    # magic that passes all possible arguments positionally..
+    def __init__(self, fp=None, headers=None, outerboundary=b'',
+                 environ=os.environ, keep_blank_values=0, strict_parsing=0,
+                 limit=None, encoding='utf-8', errors='replace',
+                 directory='.'):
+        self.directory = directory
+        # Not only is cgi.FieldStorage full of magic, it's DIFFERENT
+        # magic in Py2/Py3. Here's a case of the core library making
+        # life difficult, in a class that's *supposed to be subclassed*!
+        if sys.version_info > (3,):
+            cgi.FieldStorage.__init__(self, fp, headers, outerboundary,
+                     environ, keep_blank_values, strict_parsing,
+                     limit, encoding, errors)
+        else:
+            cgi.FieldStorage.__init__(self, fp, headers, outerboundary,
+                     environ, keep_blank_values, strict_parsing)
 
     def make_file(self, binary=None):
         fd, name = tempfile.mkstemp(dir=self.directory, prefix=self.TMPPREFIX)
@@ -741,6 +765,7 @@ class HTTPUploadHandler(httpserver.BaseHTTPRequestHandler):
             # Realised CGI handles headers for you, so no need to pollute env
             # with content-type wrangling anymore.
             form = DroopyFieldStorage(fp=self.rfile,
+                                      directory=self.directory,
                                       headers=self.headers,
                                       environ={'REQUEST_METHOD': self.command})
             file_items = form[self.form_field]
@@ -758,7 +783,7 @@ class HTTPUploadHandler(httpserver.BaseHTTPRequestHandler):
                 root, ext = os.path.splitext(localpath)
                 i = 1
 
-                # TODO: race condition, but hey...
+                # TODO: race condition...
                 while os.path.exists(localpath):
                     localpath = "%s-%d%s" % (root, i, ext)
                     i = i + 1
@@ -789,7 +814,7 @@ class HTTPUploadHandler(httpserver.BaseHTTPRequestHandler):
         except Exception as e:
             self.log_message(repr(e))
             self.send_html(self.html("error"))
-            #raise e # Dev only
+            raise e # Dev only
 
     def send_html(self, htmlstr):
         "Simply returns htmlstr with the appropriate content-type/status."
