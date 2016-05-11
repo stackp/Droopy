@@ -216,7 +216,7 @@ class HTTPUploadHandler(httpserver.BaseHTTPRequestHandler):
     def get_case_insensitive_header(self, hdrname, default):
         "Python 2 and 3 differ in header capitalisation!"
         lc_hdrname = hdrname.lower()
-        lc_headers = {h.lower():h for h in self.headers.keys()}
+        lc_headers = dict((h.lower(), h) for h in self.headers.keys())
         if lc_hdrname in lc_headers:
             return self.headers[lc_headers[lc_hdrname]]
         else:
