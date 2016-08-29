@@ -1030,7 +1030,7 @@ def parse_args(cmd=None, ignore_defaults=False):
                         help='save options in a configuration file')
     parser.add_argument('--delete-config', action='store_true', default=False,
                         help='delete the configuration file and exit')
-    parser.add_argument('--config-file', default=None,
+    parser.add_argument('--config-file', default=default_configfile(),
                         help='configuration file to load terminal arguments from.')
     args = parser.parse_args(cmd)
     if args.picture:
