@@ -1,7 +1,7 @@
 # Droopy
 ### Easy File Sharing
 Fork by Filippo Cremonese (fcremo).
-I added the --randomize-filenames option.
+I added the --randomize-filenames option and a Dockerfile.
 Below, the original author Readme.md
 
 Copyright 2008-2013 (c) Pierre Duquesne <stackp@online.fr>
