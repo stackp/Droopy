@@ -77,6 +77,7 @@ else:
 
 import cgi
 import os
+import os.path
 import posixpath
 import macpath
 import ntpath
@@ -212,6 +213,7 @@ class HTTPUploadHandler(httpserver.BaseHTTPRequestHandler):
     auth = ''
     certfile = None
     divpicture = '<div class="box"><img src="/__droopy/picture"/></div>'
+    staticfolder = os.path.join(os.path.dirname(os.path.realpath(__file__)), "static")
 
     def get_case_insensitive_header(self, hdrname, default):
         "Python 2 and 3 differ in header capitalisation!"
@@ -300,6 +302,9 @@ class HTTPUploadHandler(httpserver.BaseHTTPRequestHandler):
         if self.picture != None and self.path == '/__droopy/picture':
             # send the picture
             self.send_file(self.picture)
+        # serve static files
+        elif self.path.startswith('/static'):
+            self.send_file(os.path.join(self.staticfolder, self.path.lstrip('/static/')))
         # TODO Verify that this is path-injection proof
         elif name in self.published_files():
             localpath = os.path.join(self.directory, name)
@@ -486,7 +491,7 @@ a {color: #4499cc; text-decoration: none;}
           letter-spacing: -2px; line-height: 50px; color: #aaa;}
 #sending {display: none; font-style: italic;}
 #sending .text {padding-top: 10px; color: #bbb; font-size: 0.8em;}
-#wrapform {height: 90px; padding-top:40px;}
+#wrapform {padding-top:40px;}
 #progress {display: inline;  border-collapse: separate; empty-cells: show;
            border-spacing: 24px 0; padding: 0; vertical-align: bottom;}
 #progress td {height: 17px; width: 17px; background-color: #eee;
@@ -519,6 +524,7 @@ maintmpl = '''
 <head>
 <title>%(maintitle)s</title>
 ''' + style + '''
+<link rel="stylesheet" href="/static/dropzone/dropzone.css">
 <script language="JavaScript">
 function swap() {
    document.getElementById("form").style.display = "none";
@@ -539,15 +545,19 @@ function onunload() {
    document.getElementById("form").style.display = "block";
    document.getElementById("sending").style.display = "none";
 }
-</script></head>
+</script>
+</head>
 <body>
 %(linkurl)s
 <div class="container">
 <div id="wrapform">
   <div id="form" class="box">
-    <form method="post" enctype="multipart/form-data" action="">
+    <form id="upload-form" method="post" enctype="multipart/form-data" action="" class="dropzone">
+    <!-- we only display the input elements if dropzone can't be used (no JS) -->
+    <div class="fallback">
       <input name="upfile" type="file" multiple="yes">
       <input value="%(submit)s" onclick="swap()" type="submit">
+    </div>
     </form>
   </div>
   <div id="sending" class="box">
@@ -563,6 +573,14 @@ function onunload() {
 ''' + userinfo + '''
 %(files)s
 </div>
+<script src="/static/dropzone/dropzone.js"></script>
+<script>
+  Dropzone.autoDiscover = false;
+  var uploadDropzone = new Dropzone("#upload-form", {
+                                       url: "/",
+                                       paramName: "upfile"
+                                   });
+</script>
 </body>
 </html>
 '''
