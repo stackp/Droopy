@@ -213,7 +213,8 @@ class HTTPUploadHandler(httpserver.BaseHTTPRequestHandler):
     auth = ''
     certfile = None
     divpicture = '<div class="box"><img src="/__droopy/picture"/></div>'
-    staticfolder = os.path.join(os.path.dirname(os.path.realpath(__file__)), "static")
+    staticfolder = os.environ.get("DROOPY_STATIC",
+      os.path.join(os.path.dirname(os.path.realpath(__file__)), "static"))
 
     def get_case_insensitive_header(self, hdrname, default):
         "Python 2 and 3 differ in header capitalisation!"
