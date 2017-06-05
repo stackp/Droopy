@@ -6,6 +6,10 @@ Copyright 2008-2013 (c) Pierre Duquesne <stackp@online.fr>
 Licensed under the New BSD License.
 
 Changelog
+   20170605 * Disable SSLv2, SSLv3, and compression
+            * Update default permitted ciphers
+            * --hsts - adds HTTP Strict Transport Security header to responses
+            * --sslkey - loads SSL private key from a separate file
    20151025 * Global variables removed
             * Code refactoring and re-layout
             * Python 2 and 3 compatibility
@@ -211,6 +215,7 @@ class HTTPUploadHandler(httpserver.BaseHTTPRequestHandler):
     form_field = 'upfile'
     auth = ''
     certfile = None
+    hsts = None
     divpicture = '<div class="box"><img src="/__droopy/picture"/></div>'
 
     def get_case_insensitive_header(self, hdrname, default):
@@ -360,6 +365,8 @@ class HTTPUploadHandler(httpserver.BaseHTTPRequestHandler):
     def send_resp_headers(self, response_code, headers_dict, end=False):
         "Just a shortcut for a common operation."
         self.send_response(response_code)
+        if self.hsts:
+            self.send_header('Strict-Transport-Security', 'max-age=' + str(self.hsts))
         for k, v in headers_dict.items():
             self.send_header(k, v)
         if end:
@@ -424,16 +431,18 @@ def run(hostname='',
         auth='',
         certfile=None,
         permitted_ciphers=(
-            'ECDH+AESGCM:ECDH+AES256:ECDH+AES128:ECDH+3DES'
-            ':RSA+AESGCM:RSA+AES:RSA+3DES'
-            ':!aNULL:!MD5:!DSS')):
+            'ECDH+AESGCM:ECDH+CHACHA20:DH+AESGCM:DH+CHACHA20:ECDH+AES256:DH+AES256:'
+            'ECDH+AES128:DH+AES:ECDH+HIGH:DH+HIGH:RSA+AESGCM:RSA+AES:RSA+HIGH:'
+            '!aNULL:!eNULL:!MD5:!DSS:!RC4:!3DES'),
+        keyfile=None,
+        hsts=None):
     """
     certfile should be the path of a PEM TLS certificate.
+    keyfile should be a PEM private key, otherwise it's assumed to be in the certfile.
 
     permitted_ciphers, if a TLS cert is provided, is an OpenSSL cipher string.
-    The default here is taken from:
-      https://hynek.me/articles/hardening-your-web-servers-ssl-ciphers/
-    ..with DH-only ciphers removed because of precomputation hazard.
+    The default here is taken from Python 3.6.1:
+      https://github.com/python/cpython/blob/v3.6.1/Lib/ssl.py#L208-L212
     """
     if templates is None or localisations is None:
         raise ValueError("Must provide templates *and* localisations.")
@@ -442,24 +451,34 @@ def run(hostname='',
     HTTPUploadHandler.directory = directory
     HTTPUploadHandler.localisations = localisations
     HTTPUploadHandler.certfile = certfile
+    HTTPUploadHandler.hsts = hsts
     HTTPUploadHandler.publish_files = publish_files
     HTTPUploadHandler.picture = picture
     HTTPUploadHandler.message = message
     HTTPUploadHandler.file_mode = file_mode
     HTTPUploadHandler.auth = auth
     httpd = ThreadedHTTPServer((hostname, port), HTTPUploadHandler)
-    # TODO: Specify TLS1.2 only?
     if certfile:
         try:
             import ssl
         except:
             print("Error: Could not import module 'ssl', exiting.")
             sys.exit(2)
-        httpd.socket = ssl.wrap_socket(
-            httpd.socket,
-            certfile=certfile,
-            ciphers=permitted_ciphers,
-            server_side=True)
+        try:
+            ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+            ctx.load_cert_chain(certfile, keyfile)
+            ctx.set_ciphers(permitted_ciphers)
+            httpd.socket = ctx.wrap_socket(
+                httpd.socket,
+                server_side=True)
+        except AttributeError:
+            print("Warning: Use Python 2.7.9+ or 3.4+ for improved SSL security.")
+            httpd.socket = ssl.wrap_socket(
+                httpd.socket,
+                certfile=certfile,
+                keyfile=keyfile,
+                ciphers=permitted_ciphers,
+                server_side=True)
     httpd.serve_forever()
 
 # -- Dato
@@ -1024,6 +1043,10 @@ def parse_args(cmd=None, ignore_defaults=False):
                         help='set the authentication credentials, in form USER:PASS')
     parser.add_argument('--ssl', type=str, default='',
                         help='set up https using the certificate file')
+    parser.add_argument('--sslkey', type=str, default='',
+                        help='load ssl key from this separate file')
+    parser.add_argument('--hsts', type=int, nargs='?', metavar='SECONDS', const=15811200,  # 6 months
+                        help='add HTTP Strict Transport Security header to responses')
     parser.add_argument('--chmod', type=str, default=None,
                         help='set the file permissions (octal value)')
     parser.add_argument('--save-config', action='store_true', default=False,
@@ -1053,6 +1076,11 @@ def parse_args(cmd=None, ignore_defaults=False):
             print("PEM file not found: '{0}'".format(args.ssl))
             sys.exit(1)
         args.ssl = fullpath(args.ssl)
+    if args.sslkey:
+        if not os.path.isfile(args.sslkey):
+            print("Private key PEM file not found: '{0}'".format(args.sslkey))
+            sys.exit(1)
+        args.sslkey = fullpath(args.sslkey)
     if args.chmod is not None:
         try:
             args.chmod = int(args.chmod, 8)
@@ -1092,6 +1120,12 @@ def main():
         cfg = args.get('config_file', default_configfile())
         save_options(cfg)
         print("Options saved in {0}".format(cfg))
+    if not args['ssl']:
+        if args['sslkey']:
+            print("Ignoring --sslkey (use --ssl to enable SSL)")
+        if args['hsts']:
+            print("Ignoring --hsts (use --ssl to enable SSL)")
+            args['hsts'] = None
     print("Files will be uploaded to {0}\n".format(args['directory']))
     proto = 'https' if args['ssl'] else 'http'
     print("HTTP server starting...",
@@ -1099,6 +1133,8 @@ def main():
     try:
         run(port=args['port'],
             certfile=args['ssl'],
+            keyfile=args['sslkey'],
+            hsts=args['hsts'],
             picture=args['picture'],
             message=args['message'],
             directory=args['directory'],
