@@ -6,6 +6,8 @@ Copyright 2008-2013 (c) Pierre Duquesne <stackp@online.fr>
 Licensed under the New BSD License.
 
 Changelog
+   20180125 * implemented directory uploading (possibly unstable, possible security holes?)
+            * fixed(?) file name encoding
    20151025 * Global variables removed
             * Code refactoring and re-layout
             * Python 2 and 3 compatibility
@@ -77,9 +79,9 @@ else:
 
 import cgi
 import os
-import posixpath
-import macpath
-import ntpath
+#import posixpath
+#import macpath
+#import ntpath
 import argparse
 import mimetypes
 import shutil
@@ -107,11 +109,11 @@ def fullpath(path):
     "Shortcut for os.path abspath(expanduser())"
     return os.path.abspath(os.path.expanduser(path))
 
-def basename(path):
-    "Extract the file base name (some browsers send the full file path)."
-    for mod in posixpath, macpath, ntpath:
-        path = mod.basename(path)
-    return path
+#def basename(path):
+#    "Extract the file base name (some browsers send the full file path)."
+#    for mod in posixpath, macpath, ntpath:
+#        path = mod.basename(path)
+#    return path
 
 def check_auth(method):
     "Wraps methods on the request handler to require simple auth checks."
@@ -322,10 +324,15 @@ class HTTPUploadHandler(httpserver.BaseHTTPRequestHandler):
             if not isinstance(file_items, list):
                 file_items = [file_items]
             for item in file_items:
-                filename = _decode_str_if_py2(basename(item.filename), "utf-8")
+                #filename = _decode_str_if_py2(basename(item.filename), "utf-8")
+                filename = _decode_str_if_py2(item.filename, "utf-8")
                 if filename == "":
                     continue
-                localpath = _encode_str_if_py2(os.path.join(self.directory, filename), "utf-8")
+                #localpath = _encode_str_if_py2(os.path.join(self.directory, filename), "utf-8")
+                localpath = os.path.join(self.directory, filename)
+                dir = os.path.dirname(localpath)
+                if not os.path.exists(dir):
+                    os.makedirs(dir)
                 root, ext = os.path.splitext(localpath)
                 i = 1
                 # TODO: race condition...
@@ -343,7 +350,7 @@ class HTTPUploadHandler(httpserver.BaseHTTPRequestHandler):
                         shutil.copyfileobj(item.file, fout)
                 if self.file_mode is not None:
                     os.chmod(localpath, self.file_mode)
-                self.log_message("Received: %s", os.path.basename(localpath))
+                self.log_message("Received: %s", filename)
 
             # -- Reply
             if self.publish_files:
@@ -545,6 +552,7 @@ function onunload() {
 <div class="container">
 <div id="wrapform">
   <div id="form" class="box">
+    <div>Dir: <input type="checkbox" onClick="var e=document.getElementsByName('upfile')[0];if(this.checked){e.setAttribute('webkitdirectory', 'yes')}else{e.removeAttribute('webkitdirectory')}"></div>
     <form method="post" enctype="multipart/form-data" action="">
       <input name="upfile" type="file" multiple="yes">
       <input value="%(submit)s" onclick="swap()" type="submit">
