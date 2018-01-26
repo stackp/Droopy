@@ -369,7 +369,7 @@ class HTTPUploadHandler(httpserver.BaseHTTPRequestHandler):
     def send_resp_headers(self, response_code, headers_dict, end=False):
         "Just a shortcut for a common operation."
         self.send_response(response_code)
-        if args['ssl']:
+        if self.certfile:
             self.send_header('Strict-Transport-Security', 'max-age=16070400; includeSubDomains') # 6 months
         for k, v in headers_dict.items():
             self.send_header(k, v)
