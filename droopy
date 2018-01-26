@@ -6,8 +6,10 @@ Copyright 2008-2013 (c) Pierre Duquesne <stackp@online.fr>
 Licensed under the New BSD License.
 
 Changelog
-   20180125 * implemented directory uploading (possibly unstable, possible security holes?)
-            * fixed(?) file name encoding
+   20180126 * Implemented directory uploading. (Possibly unstable, possible security holes?)
+            * Fixed(?) file name encoding.
+            * Added selected files size display.
+            * TLSv1.2 only and more strict ciphers.
    20151025 * Global variables removed
             * Code refactoring and re-layout
             * Python 2 and 3 compatibility
@@ -431,9 +433,15 @@ def run(hostname='',
         auth='',
         certfile=None,
         permitted_ciphers=(
-            'ECDH+AESGCM:ECDH+AES256:ECDH+AES128:ECDH+3DES'
-            ':RSA+AESGCM:RSA+AES:RSA+3DES'
-            ':!aNULL:!MD5:!DSS')):
+            'ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384'
+            ':ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305'
+            ':ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256'
+            ':ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA384'
+            ':ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA256'
+            ':!aNULL:!eNULL:!MD5:!DSS:!RC4:!3DES')):
+            #'ECDH+AESGCM:ECDH+AES256:ECDH+AES128:ECDH+3DES'
+            #':RSA+AESGCM:RSA+AES:RSA+3DES'
+            #':!aNULL:!MD5:!DSS')):
     """
     certfile should be the path of a PEM TLS certificate.
 
@@ -466,6 +474,7 @@ def run(hostname='',
             httpd.socket,
             certfile=certfile,
             ciphers=permitted_ciphers,
+            ssl_version=ssl.PROTOCOL_TLSv1_2,
             server_side=True)
     httpd.serve_forever()
 
@@ -484,6 +493,7 @@ body {text-align: center; background-color: #eee; font-family: sans-serif;
 div {word-wrap: break-word;}
 img {max-width: 100%%;}
 a {color: #4499cc; text-decoration: none;}
+form {margin: 2px 0 3px 0;}
 .container {max-width: 700px; margin: auto; background-color: #fff;}
 .box {padding-top: 20px; padding-bottom: 20px;}
 #linkurl {background-color: #333;}
@@ -546,17 +556,30 @@ function onunload() {
    document.getElementById("form").style.display = "block";
    document.getElementById("sending").style.display = "none";
 }
+
+function getSize(files) {
+  var nBytes = 0;
+  for (var i = 0; i < files.length; i++)
+    nBytes += files[i].size;
+  var sOutput = nBytes + " byte";
+  for (var aMultiples = ["KiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB", "YiB"], nMultiple = 0, nApprox = nBytes / 1024; nApprox > 1; nApprox /= 1024, nMultiple++)
+    sOutput = nApprox.toFixed(1) + " " + aMultiples[nMultiple] + " (" + nBytes.toLocaleString() + " byte)";
+  document.getElementById("size").innerHTML = sOutput;
+}
 </script></head>
 <body>
 %(linkurl)s
 <div class="container">
 <div id="wrapform">
   <div id="form" class="box">
-    <div>Dir: <input type="checkbox" onClick="var e=document.getElementsByName('upfile')[0];if(this.checked){e.setAttribute('webkitdirectory', 'yes')}else{e.removeAttribute('webkitdirectory')}"></div>
-    <form method="post" enctype="multipart/form-data" action="">
-      <input name="upfile" type="file" multiple="yes">
-      <input value="%(submit)s" onclick="swap()" type="submit">
-    </form>
+    <div style="display: inline-block; text-align: left; position: relative; top: 30%%; transform: translateY(-30%%);">
+      <div>%(dir)s <input type="checkbox" onclick="var e=document.getElementsByName('upfile')[0];if(this.checked){e.setAttribute('webkitdirectory', 'yes')}else{e.removeAttribute('webkitdirectory')}"></div>
+      <form method="post" enctype="multipart/form-data" action="">
+        <input name="upfile" type="file" multiple="yes" onchange="getSize(this.files)">
+        <input value="%(submit)s" onclick="swap()" type="submit">
+      </form>
+      <div id="size" style="font-size: 0.8em;">&nbsp;</div>
+    </div>
   </div>
   <div id="sending" class="box">
     <table id="progress">
@@ -638,7 +661,8 @@ default_localisations = {
         "errortitle":      u"مشكلة",
         "problem":         u"حدثت مشكلة !",
         "retry":           u"إعادة المحاولة",
-        "discover":        u"اكتشاف عنوان هذه الصفحة"},
+        "discover":        u"اكتشاف عنوان هذه الصفحة",
+        "dir":             u"Directory select mode:"},
     'cs' : {
         "maintitle":       u"Poslat soubor",
         "submit":          u"Poslat",
@@ -649,7 +673,8 @@ default_localisations = {
         "errortitle":      u"Chyba",
         "problem":         u"Stala se chyba !",
         "retry":           u"Zkusit znova.",
-        "discover":        u"Zjistit adresu stránky"},
+        "discover":        u"Zjistit adresu stránky",
+        "dir":             u"Directory select mode:"},
     'da' : {
         "maintitle":       u"Send en fil",
         "submit":          u"Send",
@@ -660,7 +685,8 @@ default_localisations = {
         "errortitle":      u"Problem",
         "problem":         u"Det er opstået en fejl!",
         "retry":           u"Forsøg igen.",
-        "discover":        u"Find adressen til denne side"},
+        "discover":        u"Find adressen til denne side",
+        "dir":             u"Directory select mode:"},
     'de' : {
         "maintitle":       "Datei senden",
         "submit":          "Senden",
@@ -671,7 +697,8 @@ default_localisations = {
         "errortitle":      "Fehler",
         "problem":         "Ein Fehler ist aufgetreten!",
         "retry":           "Wiederholen",
-        "discover":        "Internet-Adresse dieser Seite feststellen"},
+        "discover":        "Internet-Adresse dieser Seite feststellen",
+        "dir":             "Verzeichnisauswahl Modus:"},
     'el' : {
         "maintitle":       u"Στείλε ένα αρχείο",
         "submit":          u"Αποστολή",
@@ -682,7 +709,8 @@ default_localisations = {
         "errortitle":      u"Σφάλμα",
         "problem":         u"Παρουσιάστηκε σφάλμα",
         "retry":           u"Επανάληψη",
-        "discover":        u"Βρες την διεύθυνση της σελίδας"},
+        "discover":        u"Βρες την διεύθυνση της σελίδας",
+        "dir":             "Directory select mode:"},
     'en' : {
         "maintitle":       "Send a file",
         "submit":          "Send",
@@ -693,7 +721,8 @@ default_localisations = {
         "errortitle":      "Problem",
         "problem":         "There has been a problem!",
         "retry":           "Retry.",
-        "discover":        "Discover the address of this page"},
+        "discover":        "Discover the address of this page",
+        "dir":             "Directory select mode:"},
     'es' : {
         "maintitle":       u"Enviar un archivo",
         "submit":          u"Enviar",
@@ -704,7 +733,8 @@ default_localisations = {
         "errortitle":      u"Error",
         "problem":         u"¡Hubo un problema!",
         "retry":           u"Reintentar",
-        "discover":        u"Descubrir la dirección de esta página"},
+        "discover":        u"Descubrir la dirección de esta página",
+        "dir":             u"Directory select mode:"},
     'fi' : {
         "maintitle":       u"Lähetä tiedosto",
         "submit":          u"Lähetä",
@@ -715,7 +745,8 @@ default_localisations = {
         "errortitle":      u"Virhe",
         "problem":         u"Virhe lahetettäessä tiedostoa!",
         "retry":           u"Uudelleen.",
-        "discover":        u"Näytä tämän sivun osoite"},
+        "discover":        u"Näytä tämän sivun osoite",
+        "dir":             u"Directory select mode:"},
     'fr' : {
         "maintitle":       u"Envoyer un fichier",
         "submit":          u"Envoyer",
@@ -726,7 +757,8 @@ default_localisations = {
         "errortitle":      u"Problème",
         "problem":         u"Il y a eu un problème !",
         "retry":           u"Réessayer.",
-        "discover":        u"Découvrir l'adresse de cette page"},
+        "discover":        u"Découvrir l'adresse de cette page",
+        "dir":             u"Directory select mode:"},
     'gl' : {
         "maintitle":       u"Enviar un ficheiro",
         "submit":          u"Enviar",
@@ -737,7 +769,8 @@ default_localisations = {
         "errortitle":      u"Erro",
         "problem":         u"Xurdíu un problema!",
         "retry":           u"Reintentar",
-        "discover":        u"Descubrir o enderezo desta páxina"},
+        "discover":        u"Descubrir o enderezo desta páxina",
+        "dir":             u"Directory select mode:"},
     'hu' : {
         "maintitle":       u"Állomány küldése",
         "submit":          u"Küldés",
@@ -748,7 +781,8 @@ default_localisations = {
         "errortitle":      u"Hiba",
         "problem":         u"Egy hiba lépett fel!",
         "retry":           u"Megismételni",
-        "discover":        u"Az oldal Internet-címének megállapítása"},
+        "discover":        u"Az oldal Internet-címének megállapítása",
+        "dir":             u"Könyvtár feltöltési mód:"},
     'id' : {
         "maintitle":       "Kirim sebuah berkas",
         "submit":          "Kirim",
@@ -759,7 +793,8 @@ default_localisations = {
         "errortitle":      "Permasalahan",
         "problem":         "Telah ditemukan sebuah kesalahan!",
         "retry":           "Coba kembali.",
-        "discover":        "Kenali alamat IP dari halaman ini"},
+        "discover":        "Kenali alamat IP dari halaman ini",
+        "dir":             "Directory select mode:"},
     'it' : {
         "maintitle":       u"Invia un file",
         "submit":          u"Invia",
@@ -770,7 +805,8 @@ default_localisations = {
         "errortitle":      u"Errore",
         "problem":         u"Si è verificato un errore!",
         "retry":           u"Riprova.",
-        "discover":        u"Scopri l’indirizzo di questa pagina"},
+        "discover":        u"Scopri l’indirizzo di questa pagina",
+        "dir":             u"Directory select mode:"},
     'ja' : {
         "maintitle":       u"ファイル送信",
         "submit":          u"送信",
@@ -781,7 +817,8 @@ default_localisations = {
         "errortitle":      u"問題発生",
         "problem":         u"問題が発生しました！",
         "retry":           u"リトライ",
-        "discover":        u"このページのアドレスを確認する"},
+        "discover":        u"このページのアドレスを確認する",
+        "dir":             u"Directory select mode:"},
     'ko' : {
         "maintitle":       u"파일 보내기",
         "submit":          u"보내기",
@@ -792,7 +829,8 @@ default_localisations = {
         "errortitle":      u"문제가 발생했습니다",
         "problem":         u"문제가 발생했습니다!",
         "retry":           u"다시 시도",
-        "discover":        u"이 페이지 주소 알아보기"},
+        "discover":        u"이 페이지 주소 알아보기",
+        "dir":             u"Directory select mode:"},
     'nl' : {
         "maintitle":       "Verstuur een bestand",
         "submit":          "Verstuur",
@@ -803,7 +841,8 @@ default_localisations = {
         "errortitle":      "Fout",
         "problem":         "Er is een fout opgetreden!",
         "retry":           "Nog eens.",
-        "discover":        "Vind het adres van deze pagina"},
+        "discover":        "Vind het adres van deze pagina",
+        "dir":             "Directory select mode:"},
     'no' : {
         "maintitle":       u"Send en fil",
         "submit":          u"Send",
@@ -814,7 +853,8 @@ default_localisations = {
         "errortitle":      u"Feil",
         "problem":         u"Det har skjedd en feil !",
         "retry":           u"Send på nytt.",
-        "discover":        u"Finn addressen til denne siden"},
+        "discover":        u"Finn addressen til denne siden",
+        "dir":             u"Directory select mode:"},
     'pl' : {
         "maintitle":       u"Wyślij plik",
         "submit":          u"Wyślij",
@@ -825,7 +865,8 @@ default_localisations = {
         "errortitle":      u"Problem",
         "problem":         u"Wystąpił błąd!",
         "retry":           u"Spróbuj ponownie.",
-        "discover":        u"Znajdź adres tej strony"},
+        "discover":        u"Znajdź adres tej strony",
+        "dir":             u"Directory select mode:"},
     'pt' : {
         "maintitle":       u"Enviar um ficheiro",
         "submit":          u"Enviar",
@@ -836,7 +877,8 @@ default_localisations = {
         "errortitle":      u"Erro",
         "problem":         u"Ocorreu um erro !",
         "retry":           u"Tentar novamente.",
-        "discover":        u"Descobrir o endereço desta página"},
+        "discover":        u"Descobrir o endereço desta página",
+        "dir":             u"Directory select mode:"},
     'pt-br' : {
         "maintitle":       u"Enviar um arquivo",
         "submit":          u"Enviar",
@@ -847,7 +889,8 @@ default_localisations = {
         "errortitle":      u"Erro",
         "problem":         u"Ocorreu um erro!",
         "retry":           u"Tentar novamente.",
-        "discover":        u"Descobrir o endereço desta página"},
+        "discover":        u"Descobrir o endereço desta página",
+        "dir":             u"Directory select mode:"},
     'ro' : {
         "maintitle":       u"Trimite un fişier",
         "submit":          u"Trimite",
@@ -858,7 +901,8 @@ default_localisations = {
         "errortitle":      u"Problemă",
         "problem":         u"A intervenit o problemă !",
         "retry":           u"Reîncearcă.",
-        "discover":        u"Descoperă adresa acestei pagini"},
+        "discover":        u"Descoperă adresa acestei pagini",
+        "dir":             u"Directory select mode:"},
     'ru' : {
         "maintitle":       u"Отправить файл",
         "submit":          u"Отправить",
@@ -869,7 +913,8 @@ default_localisations = {
         "errortitle":      u"Ошибка",
         "problem":         u"Произошла ошибка !",
         "retry":           u"Повторить.",
-        "discover":        u"Посмотреть адрес этой страницы"},
+        "discover":        u"Посмотреть адрес этой страницы",
+        "dir":             u"Directory select mode:"},
     'sk' : {
         "maintitle":       u"Pošli súbor",
         "submit":          u"Pošli",
@@ -880,7 +925,8 @@ default_localisations = {
         "errortitle":      u"Chyba",
         "problem":         u"Vyskytla sa chyba!",
         "retry":           u"Skúsiť znova.",
-        "discover":        u"Zisti adresu tejto stránky"},
+        "discover":        u"Zisti adresu tejto stránky",
+        "dir":             u"Directory select mode:"},
     'sl' : {
         "maintitle":       u"Pošlji datoteko",
         "submit":          u"Pošlji",
@@ -891,7 +937,8 @@ default_localisations = {
         "errortitle":      u"Napaka",
         "problem":         u"Prišlo je do napake !",
         "retry":           u"Poizkusi ponovno.",
-        "discover":        u"Poišči naslov na tej strani"},
+        "discover":        u"Poišči naslov na tej strani",
+        "dir":             u"Directory select mode:"},
     'sr' : {
         "maintitle":       u"Pošalji fajl",
         "submit":          u"Pošalji",
@@ -902,7 +949,8 @@ default_localisations = {
         "errortitle":      u"Problem",
         "problem":         u"Desio se problem !",
         "retry":           u"Pokušaj ponovo.",
-        "discover":        u"Otkrij adresu ove stranice"},
+        "discover":        u"Otkrij adresu ove stranice",
+        "dir":             u"Directory select mode:"},
     'sv' : {
         "maintitle":       u"Skicka en fil",
         "submit":          u"Skicka",
@@ -913,7 +961,8 @@ default_localisations = {
         "errortitle":      u"Fel",
         "problem":         u"Det har uppstått ett fel !",
         "retry":           u"Försök igen.",
-        "discover":        u"Ta reda på adressen till denna sida"},
+        "discover":        u"Ta reda på adressen till denna sida",
+        "dir":             u"Directory select mode:"},
     'tr' : {
         "maintitle":       u"Dosya gönder",
         "submit":          u"Gönder",
@@ -924,7 +973,8 @@ default_localisations = {
         "errortitle":      u"Problem.",
         "problem":         u"Bir problem oldu !",
         "retry":           u"Yeniden dene.",
-        "discover":        u"Bu sayfanın adresini bul"},
+        "discover":        u"Bu sayfanın adresini bul",
+        "dir":             u"Directory select mode:"},
     'zh-cn' : {
         "maintitle":       u"发送文件",
         "submit":          u"发送",
@@ -935,7 +985,8 @@ default_localisations = {
         "errortitle":      u"问题",
         "problem":         u"出现问题！",
         "retry":           u"重试。",
-        "discover":        u"查看本页面的地址"},
+        "discover":        u"查看本页面的地址",
+        "dir":             u"Directory select mode:"},
     'zh-tw' : {
         "maintitle":       u"上傳檔案",
         "submit":          u"上傳",
@@ -946,7 +997,8 @@ default_localisations = {
         "errortitle":      u"錯誤",
         "problem":         u"出現錯誤！",
         "retry":           u"重試。",
-        "discover":        u"查閱本網頁的網址"}
+        "discover":        u"查閱本網頁的網址",
+        "dir":             u"Directory select mode:"}
 }  # Ends default_localisations dictionary.
 
 
