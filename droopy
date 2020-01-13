@@ -348,7 +348,7 @@ class HTTPUploadHandler(httpserver.BaseHTTPRequestHandler):
             # -- Reply
             if self.publish_files:
                 # The file list gives a feedback for the upload success
-                self.send_resp_headers(301, {'Location': '/'}, end=True)
+                self.send_resp_headers(301, {'Location': './'}, end=True)
             else:
                 self.send_html(self.html("success"))
 
