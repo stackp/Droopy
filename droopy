@@ -6,6 +6,7 @@ Copyright 2008-2013 (c) Pierre Duquesne <stackp@online.fr>
 Licensed under the New BSD License.
 
 Changelog
+   20200201 * Update default permitted ciphers
    20170605 * Disable SSLv2, SSLv3, and compression
             * Update default permitted ciphers
             * --hsts - adds HTTP Strict Transport Security header to responses
@@ -430,7 +431,9 @@ def run(hostname='',
         publish_files=False,
         auth='',
         certfile=None,
-        permitted_ciphers=(
+        permitted_ciphers=None if sys.version_info >= (3, 7) else (
+            'TLS13-AES-256-GCM-SHA384:TLS13-CHACHA20-POLY1305-SHA256:'
+            'TLS13-AES-128-GCM-SHA256:'
             'ECDH+AESGCM:ECDH+CHACHA20:DH+AESGCM:DH+CHACHA20:ECDH+AES256:DH+AES256:'
             'ECDH+AES128:DH+AES:ECDH+HIGH:DH+HIGH:RSA+AESGCM:RSA+AES:RSA+HIGH:'
             '!aNULL:!eNULL:!MD5:!DSS:!RC4:!3DES'),
@@ -441,8 +444,8 @@ def run(hostname='',
     keyfile should be a PEM private key, otherwise it's assumed to be in the certfile.
 
     permitted_ciphers, if a TLS cert is provided, is an OpenSSL cipher string.
-    The default here is taken from Python 3.6.1:
-      https://github.com/python/cpython/blob/v3.6.1/Lib/ssl.py#L208-L212
+    The default is Python's default when using v3.7+, otherwise it's Python 3.6.12's default:
+      https://github.com/python/cpython/blob/v3.6.12/Lib/ssl.py#L212-L218
     """
     if templates is None or localisations is None:
         raise ValueError("Must provide templates *and* localisations.")
@@ -467,7 +470,8 @@ def run(hostname='',
         try:
             ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
             ctx.load_cert_chain(certfile, keyfile)
-            ctx.set_ciphers(permitted_ciphers)
+            if permitted_ciphers:
+                ctx.set_ciphers(permitted_ciphers)
             httpd.socket = ctx.wrap_socket(
                 httpd.socket,
                 server_side=True)
