@@ -155,7 +155,7 @@ class DroopyFieldStorage(cgi.FieldStorage):
     def __init__(self, fp=None, headers=None, outerboundary=b'',
                  environ=os.environ, keep_blank_values=0, strict_parsing=0,
                  limit=None, encoding='utf-8', errors='replace',
-                 directory='.'):
+                 max_num_fields=None, separator='&', directory='.'):
         """
         Adds 'directory' argument to FieldStorage.__init__.
         Retains compatibility with FieldStorage.__init__ (which involves magic)
@@ -164,14 +164,15 @@ class DroopyFieldStorage(cgi.FieldStorage):
         # Not only is cgi.FieldStorage full of magic, it's DIFFERENT
         # magic in Py2/Py3. Here's a case of the core library making
         # life difficult, in a class that's *supposed to be subclassed*!
-        if sys.version_info > (3,):
+        if sys.version_info >= (3, 9):
             cgi.FieldStorage.__init__(self, fp, headers, outerboundary,
                                       environ, keep_blank_values,
-                                      strict_parsing, limit, encoding, errors)
+                                      strict_parsing, limit, encoding, errors,
+                                      max_num_fields, separator)
         else:
             cgi.FieldStorage.__init__(self, fp, headers, outerboundary,
                                       environ, keep_blank_values,
-                                      strict_parsing)
+                                      strict_parsing, limit, encoding, errors)
 
     # Binary is passed in Py2 but not Py3.
     def make_file(self, binary=None):
