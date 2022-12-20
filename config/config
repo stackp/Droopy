@@ -1,0 +1,4 @@
+--randomize-filenames
+-d /app/data
+-m Message
+--chmod 220

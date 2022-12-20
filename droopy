@@ -6,6 +6,7 @@ Copyright 2008-2013 (c) Pierre Duquesne <stackp@online.fr>
 Licensed under the New BSD License.
 
 Changelog
+   20151129 * Added --randomize-filenames option
    20151025 * Global variables removed
             * Code refactoring and re-layout
             * Python 2 and 3 compatibility
@@ -87,6 +88,7 @@ import tempfile
 import socket
 import base64
 import functools
+import binascii
 
 
 def _decode_str_if_py2(inputstr, encoding='utf-8'):
@@ -327,11 +329,19 @@ class HTTPUploadHandler(httpserver.BaseHTTPRequestHandler):
                     continue
                 localpath = _encode_str_if_py2(os.path.join(self.directory, filename), "utf-8")
                 root, ext = os.path.splitext(localpath)
-                i = 1
-                # TODO: race condition...
-                while os.path.exists(localpath):
-                    localpath = "%s-%d%s" % (root, i, ext)
-                    i = i + 1
+
+                if self.randomize_filenames:
+                    rand = binascii.hexlify(os.urandom(4)).decode()
+                    localpath = "%s-%s%s" % (root, rand, ext)
+                    while os.path.exists(localpath):
+                        rand = binascii.hexlify(os.urandom(4)).decode()
+                        localpath = "%s-%s%s" % (root, rand, ext)
+                else:
+                    i = 1
+                    # TODO: race condition...
+                    while os.path.exists(localpath):
+                        localpath = "%s-%d%s" % (root, i, ext)
+                        i = i + 1
                 if hasattr(item, 'tmpfile'):
                     # DroopyFieldStorage.make_file() has been called
                     item.tmpfile.close()
@@ -421,6 +431,7 @@ def run(hostname='',
         message='',
         file_mode=None,
         publish_files=False,
+        randomize_filenames=False,
         auth='',
         certfile=None,
         permitted_ciphers=(
@@ -443,6 +454,7 @@ def run(hostname='',
     HTTPUploadHandler.localisations = localisations
     HTTPUploadHandler.certfile = certfile
     HTTPUploadHandler.publish_files = publish_files
+    HTTPUploadHandler.randomize_filenames = randomize_filenames
     HTTPUploadHandler.picture = picture
     HTTPUploadHandler.message = message
     HTTPUploadHandler.file_mode = file_mode
@@ -1020,6 +1032,8 @@ def parse_args(cmd=None, ignore_defaults=False):
                         help='set the picture')
     parser.add_argument('--publish-files', '--dl', action='store_true', default=False,
                         help='provide download links')
+    parser.add_argument('--randomize-filenames', '--rand', action='store_true', default=False,
+                        help='randomize filenames of stored files')
     parser.add_argument('-a', '--auth', type=str, default='',
                         help='set the authentication credentials, in form USER:PASS')
     parser.add_argument('--ssl', type=str, default='',
@@ -1104,6 +1118,7 @@ def main():
             directory=args['directory'],
             file_mode=args['chmod'],
             publish_files=args['publish_files'],
+            randomize_filenames=args['randomize_filenames'],
             auth=args['auth'],
             templates=default_templates,
             localisations=default_localisations)
