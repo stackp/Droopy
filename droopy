@@ -276,7 +276,7 @@ class HTTPUploadHandler(httpserver.BaseHTTPRequestHandler):
         if self.publish_files:
             for name in self.published_files():
                 encoded_name = urllibparse.quote(_encode_str_if_py2(name))
-                links += '<a href="/{0}">{1}</a>'.format(encoded_name, name)
+                links += '<a href="./{0}">{1}</a>'.format(encoded_name, name)
             links = '<div id="files">' + links + '</div>'
         dico["files"] = links
         # -- Add a link to discover the url
@@ -348,7 +348,7 @@ class HTTPUploadHandler(httpserver.BaseHTTPRequestHandler):
             # -- Reply
             if self.publish_files:
                 # The file list gives a feedback for the upload success
-                self.send_resp_headers(301, {'Location': '/'}, end=True)
+                self.send_resp_headers(301, {'Location': './'}, end=True)
             else:
                 self.send_html(self.html("success"))
 
