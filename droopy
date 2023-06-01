@@ -123,9 +123,8 @@ def check_auth(method):
     def decorated(self, *pargs):
         "Reject if auth fails."
         if self.auth:
-            # TODO: Between minor versions this handles str/bytes differently
             received = self.get_case_insensitive_header('Authorization', None)
-            expected = 'Basic ' + base64.b64encode(self.auth)
+            expected = 'Basic ' + base64.b64encode(self.auth.encode()).decode()
             # TODO: Timing attack?
             if received != expected:
                 self.send_response(401)
