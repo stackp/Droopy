@@ -6,6 +6,7 @@ Copyright 2008-2013 (c) Pierre Duquesne <stackp@online.fr>
 Licensed under the New BSD License.
 
 Changelog
+   20230601 * Add support for Diffie-Hellman PFS (ECDH is already supported)
    20230601 * No default ciphers now use SHA1
    20230601 * All default ciphers now use perfect forward secrecy
    20230601 * Updates for Python 3.8+
@@ -433,6 +434,7 @@ def run(hostname='',
             'ECDH+AES128:DH+AES:ECDH+HIGH:DH+HIGH:'
             '!aNULL:!eNULL:!MD5:!SHA1:!DSS:!RC4:!3DES'),
         keyfile=None,
+        dhparamsfile=None,
         hsts=None):
     """
     certfile should be the path of a PEM TLS certificate.
@@ -442,6 +444,9 @@ def run(hostname='',
     The default is Python's default when using v3.7+, otherwise it's Python 3.6.12's default
     (below); in either case ciphers with SHA1 or missing perfect forward secrecy are excluded.
       https://github.com/python/cpython/blob/v3.6.12/Lib/ssl.py#L212-L218
+
+    dhparamsfile should contain Diffie-Hellman parameters in .pem format.
+    It is required for (non-EC) EDH support, see dhparam(1SSL).
     """
     if templates is None or localisations is None:
         raise ValueError("Must provide templates *and* localisations.")
@@ -475,11 +480,15 @@ def run(hostname='',
                 # Also remove ciphers which use SHA1.
                 ctx.set_ciphers(':'.join(c['name'] for c in ctx.get_ciphers()
                                 if c['kea'] != 'kx-rsa' and c['digest'] != 'sha1'))
+            if dhparamsfile:
+                ctx.load_dh_params(dhparamsfile)
             httpd.socket = ctx.wrap_socket(
                 httpd.socket,
                 server_side=True)
         except AttributeError:
             print("Warning: Use Python 2.7.9+ or 3.4+ for improved SSL security.")
+            if dhparamsfile:
+                print("         Non-EC Diffie-Hellman PFS is not supported.")
             httpd.socket = ssl.wrap_socket(
                 httpd.socket,
                 certfile=certfile,
@@ -1052,6 +1061,8 @@ def parse_args(cmd=None, ignore_defaults=False):
                         help='set up https using the certificate file')
     parser.add_argument('--sslkey', type=str, default='',
                         help='load ssl key from this separate file')
+    parser.add_argument('--dhparams', type=str, default='',
+                        help='load Diffie-Hellman parameters from this .pem file')
     parser.add_argument('--hsts', type=int, nargs='?', metavar='SECONDS', const=15811200,  # 6 months
                         help='add HTTP Strict Transport Security header to responses')
     parser.add_argument('--chmod', type=str, default=None,
@@ -1141,6 +1152,7 @@ def main():
         run(port=args['port'],
             certfile=args['ssl'],
             keyfile=args['sslkey'],
+            dhparamsfile=args['dhparams'],
             hsts=args['hsts'],
             picture=args['picture'],
             message=args['message'],
