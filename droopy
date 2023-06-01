@@ -6,6 +6,7 @@ Copyright 2008-2013 (c) Pierre Duquesne <stackp@online.fr>
 Licensed under the New BSD License.
 
 Changelog
+   20230601 * Updates for Python 3.8+
    20200201 * Update default permitted ciphers
    20170605 * Disable SSLv2, SSLv3, and compression
             * Update default permitted ciphers
@@ -150,6 +151,7 @@ class DroopyFieldStorage(cgi.FieldStorage):
     def __init__(self, fp=None, headers=None, outerboundary=b'',
                  environ=os.environ, keep_blank_values=0, strict_parsing=0,
                  limit=None, encoding='utf-8', errors='replace',
+                 max_num_fields=None, separator='&',
                  directory='.'):
         """
         Adds 'directory' argument to FieldStorage.__init__.
@@ -159,6 +161,7 @@ class DroopyFieldStorage(cgi.FieldStorage):
         # Not only is cgi.FieldStorage full of magic, it's DIFFERENT
         # magic in Py2/Py3. Here's a case of the core library making
         # life difficult, in a class that's *supposed to be subclassed*!
+        # TODO: fix passing of max_num_fields and separator parameters
         if sys.version_info > (3,):
             cgi.FieldStorage.__init__(self, fp, headers, outerboundary,
                                       environ, keep_blank_values,
