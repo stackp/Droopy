@@ -6,6 +6,7 @@ Copyright 2008-2013 (c) Pierre Duquesne <stackp@online.fr>
 Licensed under the New BSD License.
 
 Changelog
+   20230601 * All default ciphers now use perfect forward secrecy
    20230601 * Updates for Python 3.8+
    20200201 * Update default permitted ciphers
    20170605 * Disable SSLv2, SSLv3, and compression
@@ -428,7 +429,7 @@ def run(hostname='',
             'TLS13-AES-256-GCM-SHA384:TLS13-CHACHA20-POLY1305-SHA256:'
             'TLS13-AES-128-GCM-SHA256:'
             'ECDH+AESGCM:ECDH+CHACHA20:DH+AESGCM:DH+CHACHA20:ECDH+AES256:DH+AES256:'
-            'ECDH+AES128:DH+AES:ECDH+HIGH:DH+HIGH:RSA+AESGCM:RSA+AES:RSA+HIGH:'
+            'ECDH+AES128:DH+AES:ECDH+HIGH:DH+HIGH:'
             '!aNULL:!eNULL:!MD5:!DSS:!RC4:!3DES'),
         keyfile=None,
         hsts=None):
@@ -437,7 +438,8 @@ def run(hostname='',
     keyfile should be a PEM private key, otherwise it's assumed to be in the certfile.
 
     permitted_ciphers, if a TLS cert is provided, is an OpenSSL cipher string.
-    The default is Python's default when using v3.7+, otherwise it's Python 3.6.12's default:
+    The default is Python's default when using v3.7+, otherwise it's Python 3.6.12's
+    default (below); in either case ciphers missing perfect forward secrecy are excluded.
       https://github.com/python/cpython/blob/v3.6.12/Lib/ssl.py#L212-L218
     """
     if templates is None or localisations is None:
@@ -465,6 +467,11 @@ def run(hostname='',
             ctx.load_cert_chain(certfile, keyfile)
             if permitted_ciphers:
                 ctx.set_ciphers(permitted_ciphers)
+            else:
+                # Remove ciphers which don't support perfect forward secrecy (those whose only
+                # key exchange algorithm is RSA). Note that this requires an initially sane list,
+                # such as that created by Python 3.7+'s ssl.create_default_context()
+                ctx.set_ciphers(':'.join(c['name'] for c in ctx.get_ciphers() if c['kea'] != 'kx-rsa'))
             httpd.socket = ctx.wrap_socket(
                 httpd.socket,
                 server_side=True)
