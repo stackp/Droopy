@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Droopy (http://stackp.online.fr/droopy)
@@ -6,6 +6,15 @@ Copyright 2008-2013 (c) Pierre Duquesne <stackp@online.fr>
 Licensed under the New BSD License.
 
 Changelog
+   20230601 * Add support for Diffie-Hellman PFS (ECDH is already supported)
+   20230601 * No default ciphers now use SHA1
+   20230601 * All default ciphers now use perfect forward secrecy
+   20230601 * Updates for Python 3.8+
+   20200201 * Update default permitted ciphers
+   20170605 * Disable SSLv2, SSLv3, and compression
+            * Update default permitted ciphers
+            * --hsts - adds HTTP Strict Transport Security header to responses
+            * --sslkey - loads SSL private key from a separate file
    20151025 * Global variables removed
             * Code refactoring and re-layout
             * Python 2 and 3 compatibility
@@ -77,9 +86,6 @@ else:
 
 import cgi
 import os
-import posixpath
-import os.path
-import ntpath
 import argparse
 import mimetypes
 import shutil
@@ -107,20 +113,13 @@ def fullpath(path):
     "Shortcut for os.path abspath(expanduser())"
     return os.path.abspath(os.path.expanduser(path))
 
-def basename(path):
-    "Extract the file base name (some browsers send the full file path)."
-    for mod in posixpath, os.path, ntpath:
-        path = mod.basename(path)
-    return path
-
 def check_auth(method):
     "Wraps methods on the request handler to require simple auth checks."
     def decorated(self, *pargs):
         "Reject if auth fails."
         if self.auth:
-            # TODO: Between minor versions this handles str/bytes differently
             received = self.get_case_insensitive_header('Authorization', None)
-            expected = 'Basic ' + base64.b64encode(self.auth)
+            expected = 'Basic ' + base64.b64encode(self.auth.encode()).decode()
             # TODO: Timing attack?
             if received != expected:
                 self.send_response(401)
@@ -155,6 +154,7 @@ class DroopyFieldStorage(cgi.FieldStorage):
     def __init__(self, fp=None, headers=None, outerboundary=b'',
                  environ=os.environ, keep_blank_values=0, strict_parsing=0,
                  limit=None, encoding='utf-8', errors='replace',
+                 max_num_fields=None, separator='&',
                  directory='.'):
         """
         Adds 'directory' argument to FieldStorage.__init__.
@@ -164,6 +164,7 @@ class DroopyFieldStorage(cgi.FieldStorage):
         # Not only is cgi.FieldStorage full of magic, it's DIFFERENT
         # magic in Py2/Py3. Here's a case of the core library making
         # life difficult, in a class that's *supposed to be subclassed*!
+        # TODO: fix passing of max_num_fields and separator parameters
         if sys.version_info > (3,):
             cgi.FieldStorage.__init__(self, fp, headers, outerboundary,
                                       environ, keep_blank_values,
@@ -211,6 +212,7 @@ class HTTPUploadHandler(httpserver.BaseHTTPRequestHandler):
     form_field = 'upfile'
     auth = ''
     certfile = None
+    hsts = None
     divpicture = '<div class="box"><img src="/__droopy/picture"/></div>'
 
     def get_case_insensitive_header(self, hdrname, default):
@@ -322,7 +324,7 @@ class HTTPUploadHandler(httpserver.BaseHTTPRequestHandler):
             if not isinstance(file_items, list):
                 file_items = [file_items]
             for item in file_items:
-                filename = _decode_str_if_py2(basename(item.filename), "utf-8")
+                filename = _decode_str_if_py2(os.path.basename(item.filename), "utf-8")
                 if filename == "":
                     continue
                 localpath = _encode_str_if_py2(os.path.join(self.directory, filename), "utf-8")
@@ -360,6 +362,8 @@ class HTTPUploadHandler(httpserver.BaseHTTPRequestHandler):
     def send_resp_headers(self, response_code, headers_dict, end=False):
         "Just a shortcut for a common operation."
         self.send_response(response_code)
+        if self.hsts:
+            self.send_header('Strict-Transport-Security', 'max-age=' + str(self.hsts))
         for k, v in headers_dict.items():
             self.send_header(k, v)
         if end:
@@ -423,17 +427,26 @@ def run(hostname='',
         publish_files=False,
         auth='',
         certfile=None,
-        permitted_ciphers=(
-            'ECDH+AESGCM:ECDH+AES256:ECDH+AES128:ECDH+3DES'
-            ':RSA+AESGCM:RSA+AES:RSA+3DES'
-            ':!aNULL:!MD5:!DSS')):
+        permitted_ciphers=None if sys.version_info >= (3, 7) else (
+            'TLS13-AES-256-GCM-SHA384:TLS13-CHACHA20-POLY1305-SHA256:'
+            'TLS13-AES-128-GCM-SHA256:'
+            'ECDH+AESGCM:ECDH+CHACHA20:DH+AESGCM:DH+CHACHA20:ECDH+AES256:DH+AES256:'
+            'ECDH+AES128:DH+AES:ECDH+HIGH:DH+HIGH:'
+            '!aNULL:!eNULL:!MD5:!SHA1:!DSS:!RC4:!3DES'),
+        keyfile=None,
+        dhparamsfile=None,
+        hsts=None):
     """
     certfile should be the path of a PEM TLS certificate.
+    keyfile should be a PEM private key, otherwise it's assumed to be in the certfile.
 
     permitted_ciphers, if a TLS cert is provided, is an OpenSSL cipher string.
-    The default here is taken from:
-      https://hynek.me/articles/hardening-your-web-servers-ssl-ciphers/
-    ..with DH-only ciphers removed because of precomputation hazard.
+    The default is Python's default when using v3.7+, otherwise it's Python 3.6.12's default
+    (below); in either case ciphers with SHA1 or missing perfect forward secrecy are excluded.
+      https://github.com/python/cpython/blob/v3.6.12/Lib/ssl.py#L212-L218
+
+    dhparamsfile should contain Diffie-Hellman parameters in .pem format.
+    It is required for (non-EC) EDH support, see dhparam(1SSL).
     """
     if templates is None or localisations is None:
         raise ValueError("Must provide templates *and* localisations.")
@@ -442,24 +455,46 @@ def run(hostname='',
     HTTPUploadHandler.directory = directory
     HTTPUploadHandler.localisations = localisations
     HTTPUploadHandler.certfile = certfile
+    HTTPUploadHandler.hsts = hsts
     HTTPUploadHandler.publish_files = publish_files
     HTTPUploadHandler.picture = picture
     HTTPUploadHandler.message = message
     HTTPUploadHandler.file_mode = file_mode
     HTTPUploadHandler.auth = auth
     httpd = ThreadedHTTPServer((hostname, port), HTTPUploadHandler)
-    # TODO: Specify TLS1.2 only?
     if certfile:
         try:
             import ssl
         except:
             print("Error: Could not import module 'ssl', exiting.")
             sys.exit(2)
-        httpd.socket = ssl.wrap_socket(
-            httpd.socket,
-            certfile=certfile,
-            ciphers=permitted_ciphers,
-            server_side=True)
+        try:
+            ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+            ctx.load_cert_chain(certfile, keyfile)
+            if permitted_ciphers:
+                ctx.set_ciphers(permitted_ciphers)
+            else:
+                # Remove ciphers which don't support perfect forward secrecy (those whose only
+                # key exchange algorithm is RSA). Note that this requires an initially sane list,
+                # such as that created by Python 3.7+'s ssl.create_default_context().
+                # Also remove ciphers which use SHA1.
+                ctx.set_ciphers(':'.join(c['name'] for c in ctx.get_ciphers()
+                                if c['kea'] != 'kx-rsa' and c['digest'] != 'sha1'))
+            if dhparamsfile:
+                ctx.load_dh_params(dhparamsfile)
+            httpd.socket = ctx.wrap_socket(
+                httpd.socket,
+                server_side=True)
+        except AttributeError:
+            print("Warning: Use Python 2.7.9+ or 3.4+ for improved SSL security.")
+            if dhparamsfile:
+                print("         Non-EC Diffie-Hellman PFS is not supported.")
+            httpd.socket = ssl.wrap_socket(
+                httpd.socket,
+                certfile=certfile,
+                keyfile=keyfile,
+                ciphers=permitted_ciphers,
+                server_side=True)
     httpd.serve_forever()
 
 # -- Dato
@@ -1024,6 +1059,12 @@ def parse_args(cmd=None, ignore_defaults=False):
                         help='set the authentication credentials, in form USER:PASS')
     parser.add_argument('--ssl', type=str, default='',
                         help='set up https using the certificate file')
+    parser.add_argument('--sslkey', type=str, default='',
+                        help='load ssl key from this separate file')
+    parser.add_argument('--dhparams', type=str, default='',
+                        help='load Diffie-Hellman parameters from this .pem file')
+    parser.add_argument('--hsts', type=int, nargs='?', metavar='SECONDS', const=15811200,  # 6 months
+                        help='add HTTP Strict Transport Security header to responses')
     parser.add_argument('--chmod', type=str, default=None,
                         help='set the file permissions (octal value)')
     parser.add_argument('--save-config', action='store_true', default=False,
@@ -1053,6 +1094,11 @@ def parse_args(cmd=None, ignore_defaults=False):
             print("PEM file not found: '{0}'".format(args.ssl))
             sys.exit(1)
         args.ssl = fullpath(args.ssl)
+    if args.sslkey:
+        if not os.path.isfile(args.sslkey):
+            print("Private key PEM file not found: '{0}'".format(args.sslkey))
+            sys.exit(1)
+        args.sslkey = fullpath(args.sslkey)
     if args.chmod is not None:
         try:
             args.chmod = int(args.chmod, 8)
@@ -1092,6 +1138,12 @@ def main():
         cfg = args.get('config_file', default_configfile())
         save_options(cfg)
         print("Options saved in {0}".format(cfg))
+    if not args['ssl']:
+        if args['sslkey']:
+            print("Ignoring --sslkey (use --ssl to enable SSL)")
+        if args['hsts']:
+            print("Ignoring --hsts (use --ssl to enable SSL)")
+            args['hsts'] = None
     print("Files will be uploaded to {0}\n".format(args['directory']))
     proto = 'https' if args['ssl'] else 'http'
     print("HTTP server starting...",
@@ -1099,6 +1151,9 @@ def main():
     try:
         run(port=args['port'],
             certfile=args['ssl'],
+            keyfile=args['sslkey'],
+            dhparamsfile=args['dhparams'],
+            hsts=args['hsts'],
             picture=args['picture'],
             message=args['message'],
             directory=args['directory'],
